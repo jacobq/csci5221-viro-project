@@ -1,17 +1,20 @@
 # Copyright 2011,2012 James McCauley
 # Copyright 2008 (C) Nicira, Inc.
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at:
+# This file is part of POX.
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# POX is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# POX is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with POX.  If not, see <http://www.gnu.org/licenses/>.
 
 # This file is derived from the packet library in NOX, which was
 # developed by Nicira, Inc.
@@ -35,7 +38,7 @@ _ethtype_to_str[0x8100] = 'VLAN'
 _ethtype_to_str[0x88cc] = 'LLDP'
 _ethtype_to_str[0x888e] = 'PAE'
 _ethtype_to_str[0x8847] = 'MPLS'
-_ethtype_to_str[0x8848] = 'MPLS_MC' # Multicast
+_ethtype_to_str[0x8848] = 'MPLSM' # Multicast
 _ethtype_to_str[0x86dd] = 'IPV6'
 _ethtype_to_str[0x880b] = 'PPP'
 _ethtype_to_str[0x88bb] = 'LWAPP'
@@ -48,24 +51,17 @@ _ethtype_to_str[0x889a] = 'SCSI' # SCSI Over Ethernet
 _ethtype_to_str[0x88a2] = 'ATA' # ATA Over Ethernet
 _ethtype_to_str[0x9100] = 'QINQ'
 _ethtype_to_str[0xffff] = 'BAD'
-
+_ethtype_to_str[0x0802] = 'VIRO'
 
 # IP protocol to string
-#TODO: This should probably be integrated with the decorator used in
-#      the ipv6 module.
-_ipproto_to_str[0]  = 'HOP_OPTS'
+_ipproto_to_str[0]  = 'IP'
 _ipproto_to_str[1]  = 'ICMP'
 _ipproto_to_str[2]  = 'IGMP'
 _ipproto_to_str[4]  = 'IPIP'
 _ipproto_to_str[6]  = 'TCP'
 _ipproto_to_str[9]  = 'IGRP'
 _ipproto_to_str[17] = 'UDP'
-_ipproto_to_str[43] = 'IPV6_ROUTING'
-_ipproto_to_str[44] = 'IPV6_FRAG'
 _ipproto_to_str[47] = 'GRE'
-_ipproto_to_str[58] = 'ICMP6'
-_ipproto_to_str[59] = 'IPV6_NO_NEXT'
-_ipproto_to_str[60] = 'DEST_OPTS'
 _ipproto_to_str[89] = 'OSPF'
 
 
@@ -78,15 +74,6 @@ class TruncatedException (RuntimeError):
 
 
 def checksum (data, start = 0, skip_word = None):
-  """
-  Calculate standard internet checksum over data starting at start'th byte
-
-  skip_word: If specified, it's the word offset of a word in data to "skip"
-             (as if it were zero).  The purpose is when data is received
-             data which contains a computed checksum that you are trying to
-             verify -- you want to skip that word since it was zero when
-             the checksum was initially calculated.
-  """
   if len(data) % 2 != 0:
     arr = array.array('H', data[:-1])
   else:
@@ -102,29 +89,21 @@ def checksum (data, start = 0, skip_word = None):
       start +=  arr[i]
 
   if len(data) % 2 != 0:
-    start += struct.unpack('H', data[-1]+'\0')[0] # Specify order?
+    start += struct.unpack('H', data[-1]+'\0')[0]
 
   start  = (start >> 16) + (start & 0xffff)
   start += (start >> 16)
-  #while start >> 16:
-  #  start = (start >> 16) + (start & 0xffff)
 
   return ntohs(~start & 0xffff)
 
 
-def ethtype_to_str (t):
-  """
-  Given numeric ethernet type or length, return human-readable representation
-  """
+def ethtype_to_str(t):
   if t <= 0x05dc:
     return "802.3/%04x" % (t,)
   return _ethtype_to_str.get(t, "%04x" % (t,))
 
 
-def ipproto_to_str (t):
-  """
-  Given a numeric IP protocol number (or IPv6 next_header), give human name
-  """
+def ipproto_to_str(t):
   if t in _ipproto_to_str:
     return _ipproto_to_str[t]
   else:
