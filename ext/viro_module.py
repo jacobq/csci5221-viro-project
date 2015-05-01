@@ -133,7 +133,7 @@ class viroModule(object):
     
     def findEntry(self, nvid, bucket = None):
          
-        # into the neigbhours table during neibhors discovering process.
+        # into the neighbors table during neighbor discovery process.
         if bucket != None:
            index = ''
            n = len(self.routingTable[bucket])

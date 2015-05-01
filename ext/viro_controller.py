@@ -299,7 +299,7 @@ class viro_controller (object):
     log.debug("Connection %s" % (event.connection,))
     self.myviroSwitch = ViroSwitch(event.connection, self.transparent)
 
-    print "Starting Neigbhour Discovering ...."    
+    print "Starting Neighbor Discovery ...."
     global Mydpid, myViro, myvid
    
    
