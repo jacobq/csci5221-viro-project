@@ -14,7 +14,7 @@ class viroModule(object):
         self.L = len(myvid)
         self.routingTable = {}
         self.rdvStore = {}
-        self.neigbhors = {}
+        self.neighbors = {}
         self.rdvRequestTracker = {} 
 
      
@@ -51,9 +51,9 @@ class viroModule(object):
 				  self.routingTable[dist].append(bucket_info)
 			
 			 
-			# Saving the information in the neigbhors table.
-			print "Updating the Neigbhors list..."
-			self.updateNeigbhors(vid, dist)
+			# Saving the information in the neighbors table.
+			print "Updating the Neighbors list..."
+			self.updateNeighbors(vid, dist)
 			
 			 
 			# Printing routing table 
@@ -123,12 +123,12 @@ class viroModule(object):
       #   updateNeigbors function starts here
     ###############################################
 
-    def updateNeigbhors(self, nvid, dist):
+    def updateNeighbors(self, nvid, dist):
 
-        if nvid not in self.neigbhors:
-            self.neigbhors[nvid] = {}
+        if nvid not in self.neighbors:
+            self.neighbors[nvid] = {}
      
-        self.neigbhors[nvid][dist] = time.time()
+        self.neighbors[nvid][dist] = time.time()
 
     
     def findEntry(self, nvid, bucket = None):
