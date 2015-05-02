@@ -10,7 +10,7 @@ from pox.lib.addresses import *
 from pox.lib.util import *
 from pox.lib.recoco import Timer
 
-from viro_module import viroModule
+from viro_module import ViroModule
 from viro_constant import *
 from viro_veil import *
 
@@ -25,8 +25,8 @@ class ViroSwitch(object):
         # TODO: Ultimately, don't use globals, but see if this works for now
         global myViro, mydpid, myvid
         myViro = viro_module
-        mydpid = viro_module.mydpid
-        myvid = viro_module.vid
+        mydpid = myViro.mydpid
+        myvid = myViro.myvid
 
         # We want to hear PacketIn messages, so we listen
         connection.addListeners(self)

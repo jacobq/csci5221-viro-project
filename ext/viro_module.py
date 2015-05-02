@@ -6,7 +6,7 @@ import socket, struct, sys, time, random
 from viro_veil import *  # for the constants
 
 
-class viroModule(object):
+class ViroModule(object):
     def __init__(self, mydpid, myvid):
         self.mydpid = mydpid
         self.myvid = myvid

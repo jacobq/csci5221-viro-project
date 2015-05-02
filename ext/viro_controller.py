@@ -31,7 +31,7 @@ from pox.lib.addresses import *
 from pox.lib.util import *
 from pox.lib.recoco import Timer
 
-from viro_module import viroModule
+from viro_module import ViroModule
 from viro_constant import *
 from viro_veil import *
 from viro_switch import ViroSwitch
@@ -57,7 +57,7 @@ class ViroController(object):
 
         mydpid = dpidToStr(event.connection.dpid)   # gets the switch dpid identifier
         myvid = self.get_vid_from_pid(mydpid)
-        myViro = viroModule(mydpid, myvid)
+        myViro = ViroModule(mydpid, myvid)
 
         self.myviroSwitch = ViroSwitch(event.connection, self.transparent, myViro)
 
