@@ -13,6 +13,9 @@ from pox.lib.recoco import Timer
 from viro_module import viroModule
 from viro_constant import *
 from viro_veil import *
+from viro_controller import myViro, mydpid, myvid
+
+round = 1
 
 class viro_switch(object):
     def __init__(self, connection, transparent):

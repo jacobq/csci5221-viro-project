@@ -40,7 +40,6 @@ log = core.getLogger()
 myViro = ""
 mydpid = 0
 myvid = 0
-round = 1
 
 class viro_controller(object):
     """
