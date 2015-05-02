@@ -42,7 +42,6 @@ round = 1
 
 
 class ViroSwitch(object):
-
     def __init__(self, connection, transparent):
 
         self.connection = connection
@@ -51,10 +50,30 @@ class ViroSwitch(object):
         # We want to hear PacketIn messages, so we listen
         connection.addListeners(self)
 
+    def _handle_PacketIn(self, event):
+        """
+        Handle packet in messages from the switch to implement above algorithm.
+        """
 
-    def processViroPacket(self, packet, match=None, event=None):
+        packet = event.parsed
+        match = of.ofp_match.from_packet(packet)
+        # matching the packet type
+        try:
+            if (match.dl_type == packet.VIRO_TYPE ):
+
+                print  "VIRO packet received....."
+                payload = packet.payload
+                mypacket = payload
+                [packetType] = struct.unpack("!H", mypacket[6:8])
+
+                if (packetType == VIRO_CONTROL):
+                    self.process_viro_packet(mypacket, match, event)  # handling the VIRO REQUEST
+                    return
+        except:
+            print "Error while processing packet"
 
 
+    def process_viro_packet(self, packet, match=None, event=None):
         global myvid, mydpid, myViro
         L = len(myvid)
         length = getdpidLength(mydpid)
@@ -71,7 +90,7 @@ class ViroSwitch(object):
             r = createDISCOVER_ECHO_REPLY(myvid, mydpid)
             mac = '00:14:4f:e2:b3:70'
 
-            msg = self.createOPENFLOW_Message(of.OFPP_IN_PORT, mac, r, event.port)
+            msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, r, event.port)
 
             self.connection.send(msg)
             print "Neighbour discover Reply message sent"
@@ -89,18 +108,16 @@ class ViroSwitch(object):
 
 
         else:
-
             # printPacket(packet, L)
             dst = getDest(packet, L)  # gets the packet dst
             src = getSrc(packet, L)  # gets the packet src
 
             # forward the packet if I am not the destination
             if dst != myvid:
-                self.routeViroPacket(packet)
+                self.route_viro_packet(packet)
                 return
 
             if opcode == RDV_QUERY:
-
                 print "RDV_QUERY message received"
                 if src == myvid:
                     print "I am the rdv point - processing the packet"
@@ -114,7 +131,7 @@ class ViroSwitch(object):
                         return
 
                     mac = '00:14:4f:e2:b3:70'  # A fake MAC address.
-                    msg = self.createOPENFLOW_Message(of.OFPP_IN_PORT, mac, rvdReplyPacket, event.port)
+                    msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, rvdReplyPacket, event.port)
 
                     self.connection.send(msg)
                     print "RDV_REPLY message sent"
@@ -134,7 +151,7 @@ class ViroSwitch(object):
                 print "Received a VIRO Data Packet"
 
 
-    def createOPENFLOW_Message(self, openflow_port, mac, packet, event_port=None):
+    def create_openflow_message(self, openflow_port, mac, packet, event_port=None):
         # encapsulating the VIRO packet into an ethernet frame
         e = ethernet(type=0x0802, src=EthAddr(mac))
         e.set_payload(packet)
@@ -148,28 +165,6 @@ class ViroSwitch(object):
         if (event_port != None):
             msg.in_port = event_port
         return msg
-
-    def _handle_PacketIn(self, event):
-        """
-        Handle packet in messages from the switch to implement above algorithm.
-        """
-
-        packet = event.parsed
-        match = of.ofp_match.from_packet(packet)
-        # matching the packet type
-        try:
-            if (match.dl_type == packet.VIRO_TYPE ):
-
-                print  "VIRO packet received....."
-                payload = packet.payload
-                mypacket = payload
-                [packetType] = struct.unpack("!H", mypacket[6:8])
-
-                if (packetType == VIRO_CONTROL):
-                    self.processViroPacket(mypacket, match, event)  # handling the VIRO REQUEST
-                    return
-        except:
-            print "Error while processing packet"
 
 
     def run_round(self, round):
@@ -190,21 +185,21 @@ class ViroSwitch(object):
                         if t[1] == int(myvid, 2):
                             print "Sending rdv publish messages"
                             packet, dst = myViro.publish(t, i)
-                            self.routeViroPacket(packet)
+                            self.route_viro_packet(packet)
 
                 else:
                     print "Sending rdv query messages"
 
                     packet, dst = myViro.query(i)
-                    self.routeViroPacket(packet)
+                    self.route_viro_packet(packet)
             else:
 
                 print "Sending rdv query messages"
                 packet, dst = myViro.query(i)
-                self.routeViroPacket(packet)
+                self.route_viro_packet(packet)
 
 
-    def startRound(self):
+    def start_round(self):
         global myvid, myViro, mydpid, round
         L = len(myvid)
 
@@ -228,7 +223,7 @@ class ViroSwitch(object):
         print '\n --  --  --  --  -- --  --  --  --  -- --  --  --  --  -- \n'
 
 
-    def routeViroPacket(self, packet):
+    def route_viro_packet(self, packet):
         global myvid, myViro
 
         # Type of packet: rvds Query or Publish
@@ -241,7 +236,7 @@ class ViroSwitch(object):
         # If it's me
         if (dst == myvid):
             print 'I am the destination!'
-            self.processViroPacket(packet)
+            self.process_viro_packet(packet)
             return
 
             # get nextHop and port
@@ -250,7 +245,7 @@ class ViroSwitch(object):
 
             hwrdst = '00:14:4f:e2:b3:70'
 
-            msg = self.createOPENFLOW_Message(of.OFPP_IN_PORT, hwrdst, packet, int(port))
+            msg = self.create_openflow_message(of.OFPP_IN_PORT, hwrdst, packet, int(port))
 
             self.connection.send(msg)
         else:
@@ -281,7 +276,7 @@ class viro_controller(object):
         # Call neighbour discovery function after every DISCOVER_TIME seconds
         Timer(DISCOVER_TIME, self.discover_neighbors, args=[mydpid, myvid, event], recurring=True)
         # Populate routing table after every UPDATE_RT_TIME seconds
-        Timer(UPDATE_RT_TIME, self.myviroSwitch.startRound, recurring=True)
+        Timer(UPDATE_RT_TIME, self.myviroSwitch.start_round, recurring=True)
         # Look for failures in the neigbours switches
         Timer(FAILURE_TIME, self.discover_failures, recurring=True)
 
