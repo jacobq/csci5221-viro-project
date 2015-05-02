@@ -34,14 +34,14 @@ from pox.lib.recoco import Timer
 from viro_module import viroModule
 from viro_constant import *
 from viro_veil import *
-from viro_switch import viro_switch
+from viro_switch import ViroSwitch
 
 log = core.getLogger()
 myViro = ""
 mydpid = 0
 myvid = 0
 
-class viro_controller(object):
+class ViroController(object):
     """
     Waits for OpenFlow switches to connect.
     """
@@ -52,16 +52,16 @@ class viro_controller(object):
         self.myviroSwitch = ''
 
     def _handle_ConnectionUp(self, event):
-        log.debug("Connection %s" % (event.connection,))
-        self.myviroSwitch = viro_switch(event.connection, self.transparent)
-
-        print "Starting Neighbor Discovery ...."
         global mydpid, myViro, myvid
+        log.debug("Connection %s" % (event.connection))
 
         mydpid = dpidToStr(event.connection.dpid)   # gets the switch dpid identifier
         myvid = self.get_vid_from_pid(mydpid)
         myViro = viroModule(mydpid, myvid)
 
+        self.myviroSwitch = ViroSwitch(event.connection, self.transparent, myViro)
+
+        print "Starting Neighbor Discovery ...."
         # Call neighbor discovery function after every DISCOVER_TIME seconds
         Timer(DISCOVER_TIME, self.discover_neighbors, args=[mydpid, myvid, event], recurring=True)
         # Populate routing table after every UPDATE_RT_TIME seconds
@@ -104,4 +104,4 @@ def launch(transparent=False):
     Starts an VIRO switch.
     """
 
-    core.registerNew(viro_controller, str_to_bool(transparent))
+    core.registerNew(ViroController, str_to_bool(transparent))

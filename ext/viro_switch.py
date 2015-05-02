@@ -13,15 +13,20 @@ from pox.lib.recoco import Timer
 from viro_module import viroModule
 from viro_constant import *
 from viro_veil import *
-from viro_controller import myViro, mydpid, myvid
 
 round = 1
 
-class viro_switch(object):
-    def __init__(self, connection, transparent):
+class ViroSwitch(object):
+    def __init__(self, connection, transparent, viro_module):
 
         self.connection = connection
         self.transparent = transparent
+
+        # TODO: Ultimately, don't use globals, but see if this works for now
+        global myViro, mydpid, myvid
+        myViro = viro_module
+        mydpid = viro_module.mydpid
+        myvid = viro_module.vid
 
         # We want to hear PacketIn messages, so we listen
         connection.addListeners(self)
