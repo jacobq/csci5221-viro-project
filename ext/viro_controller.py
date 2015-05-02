@@ -86,14 +86,14 @@ class ViroSwitch(object):
             packet_fields = printDiscoverPacket(packet, L, length)  # gets the fields from the packet
             nvid = packet_fields[1]  # direct neigbour VID
 
-            print "Neighbour discover Request message received from: ", nvid
+            print "Neighbor discovery request message received from: ", nvid
             r = createDISCOVER_ECHO_REPLY(myvid, mydpid)
             mac = '00:14:4f:e2:b3:70'
 
             msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, r, event.port)
 
             self.connection.send(msg)
-            print "Neighbour discover Reply message sent"
+            print "Neighbor discovery reply message sent"
 
 
         elif opcode == DISC_ECHO_REPLY:  # Handles the echo neibghour reply message/packet
@@ -103,7 +103,7 @@ class ViroSwitch(object):
             nvid = packet_fields[1]  # direct neigbour VID
             nport = event.port  # direct neigbour port
 
-            print "Neighbour discover Reply message received from: ", nvid
+            print "Neighbor discovery reply message received from: ", nvid
             myViro.updateRoutingTable(nvid, nport)
 
 
@@ -262,7 +262,7 @@ class viro_controller(object):
         myvid = self.get_vid_from_pid(mydpid)
         myViro = viroModule(mydpid, myvid)
 
-        # Call neighbour discovery function after every DISCOVER_TIME seconds
+        # Call neighbor discovery function after every DISCOVER_TIME seconds
         Timer(DISCOVER_TIME, self.discover_neighbors, args=[mydpid, myvid, event], recurring=True)
         # Populate routing table after every UPDATE_RT_TIME seconds
         Timer(UPDATE_RT_TIME, self.myviroSwitch.start_round, recurring=True)
@@ -287,10 +287,10 @@ class viro_controller(object):
             mac = '00:14:4f:e2:b3:70'  # A fake MAC address.
             msg = self.myviroSwitch.create_openflow_message(of.OFPP_FLOOD, mac, r, None)
             event.connection.send(msg)
-            print "Sending neighbour discover packets"
+            print "Sending neighbor discovery packets"
 
         except:
-            print "Error .... not able to send discover packets"
+            print "Error .... not able to send discovery packets"
 
 
     def discover_failures(self):

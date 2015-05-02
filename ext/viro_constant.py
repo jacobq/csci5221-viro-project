@@ -52,7 +52,7 @@ ECHO_SRC_OFFSET = 8
 # ROUND_TIME this is the waiting time for each round in number of seconds
 ROUND_TIME = 5
 
-# NEIGHBOUR DISCOVERY wait time
+# NEIGHBOR DISCOVERY wait time
 DISCOVER_TIME = 5
 
 # Wait time for populating routing table
