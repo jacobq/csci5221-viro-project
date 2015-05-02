@@ -281,7 +281,7 @@ class viro_controller(object):
         myViro = viroModule(mydpid, myvid)
 
         # Call neighbour discovery function after every DISCOVER_TIME seconds
-        Timer(DISCOVER_TIME, self.neibghoorDiscover, args=[mydpid, myvid, event], recurring=True)
+        Timer(DISCOVER_TIME, self.neighborDiscover, args=[mydpid, myvid, event], recurring=True)
         # Poulate routing table after every UPDATE_RT_TIME seconds
         Timer(UPDATE_RT_TIME, self.myviroSwitch.startRound, recurring=True)
         # Look for failures in the neigbours switches
@@ -298,7 +298,7 @@ class viro_controller(object):
         #   5. Zero-pad the result the 3 bits to match the behavior of the original function
         return format(int(pid.replace('-', ''), 16) - 1, 'b').zfill(3)
 
-    def neibghoorDiscover(self, mydip, myvid, event):
+    def neighborDiscover(self, mydip, myvid, event):
 
         try:
             dpid = mydip
