@@ -172,13 +172,11 @@ class ViroSwitch(object):
             print "Error while processing packet"
 
 
-    def runARound(self, round):
-        global myViro
+    def run_round(self, round):
+        global myViro, mydpid, myvid
         routingTable = myViro.routingTable
-        global mydpid, myvid
         mydpid = mydpid
         L = len(myvid)
-
 
         # start from round 2 since connectivity in round 1 is already learnt using the physical neighbors
         for i in range(2, round + 1):
@@ -211,7 +209,7 @@ class ViroSwitch(object):
         L = len(myvid)
 
         print myvid, 'Starting Round : ', round
-        self.runARound(round)
+        self.run_round(round)
         round = round + 1
 
         if round > L:
@@ -281,11 +279,11 @@ class viro_controller(object):
         myViro = viroModule(mydpid, myvid)
 
         # Call neighbour discovery function after every DISCOVER_TIME seconds
-        Timer(DISCOVER_TIME, self.neighborDiscover, args=[mydpid, myvid, event], recurring=True)
-        # Poulate routing table after every UPDATE_RT_TIME seconds
+        Timer(DISCOVER_TIME, self.discover_neighbors, args=[mydpid, myvid, event], recurring=True)
+        # Populate routing table after every UPDATE_RT_TIME seconds
         Timer(UPDATE_RT_TIME, self.myviroSwitch.startRound, recurring=True)
         # Look for failures in the neigbours switches
-        Timer(FAILURE_TIME, self.discoveryFailure, recurring=True)
+        Timer(FAILURE_TIME, self.discover_failures, recurring=True)
 
     def get_vid_from_pid(self, pid):
         # To convert a pid string (assumed to be formatted like a MAC address: xx-xx-xx-xx-xx-xx)
@@ -298,8 +296,7 @@ class viro_controller(object):
         #   5. Zero-pad the result the 3 bits to match the behavior of the original function
         return format(int(pid.replace('-', ''), 16) - 1, 'b').zfill(3)
 
-    def neighborDiscover(self, mydip, myvid, event):
-
+    def discover_neighbors(self, mydip, myvid, event):
         try:
             dpid = mydip
             r = createDISCOVER_ECHO_REQ(myvid, dpid)
@@ -312,7 +309,7 @@ class viro_controller(object):
             print "Error .... not able to send discover packets"
 
 
-    def discoveryFailure(self):
+    def discover_failures(self):
         # This is the function handling failure events
         # Random code, delete this when you are doing it.
         csci = 5221
