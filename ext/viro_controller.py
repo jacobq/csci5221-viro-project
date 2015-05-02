@@ -33,6 +33,8 @@ from viro_constant import *
 from viro_veil import *
 from pox.lib.recoco import Timer
 
+# An arbitrary/fake MAC address that seems to be used in various places
+FAKE_MAC = '00:14:4f:e2:b3:70'
 
 log = core.getLogger()
 myViro = ""
@@ -88,7 +90,7 @@ class ViroSwitch(object):
 
             print "Neighbor discovery request message received from: ", nvid
             r = createDISCOVER_ECHO_REPLY(myvid, mydpid)
-            mac = '00:14:4f:e2:b3:70'
+            mac = FAKE_MAC
 
             msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, r, event.port)
 
@@ -130,7 +132,7 @@ class ViroSwitch(object):
                     if (rvdReplyPacket == ''):
                         return
 
-                    mac = '00:14:4f:e2:b3:70'  # A fake MAC address.
+                    mac = FAKE_MAC
                     msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, rvdReplyPacket, event.port)
 
                     self.connection.send(msg)
@@ -232,7 +234,7 @@ class ViroSwitch(object):
         nextHop, port = myViro.getNextHop(packet)
         if ( nextHop != ''):
 
-            hwrdst = '00:14:4f:e2:b3:70'
+            hwrdst = FAKE_MAC
 
             msg = self.create_openflow_message(of.OFPP_IN_PORT, hwrdst, packet, int(port))
 
@@ -284,7 +286,7 @@ class viro_controller(object):
         try:
             dpid = mydip
             r = createDISCOVER_ECHO_REQ(myvid, dpid)
-            mac = '00:14:4f:e2:b3:70'  # A fake MAC address.
+            mac = FAKE_MAC
             msg = self.myviroSwitch.create_openflow_message(of.OFPP_FLOOD, mac, r, None)
             event.connection.send(msg)
             print "Sending neighbor discovery packets"
