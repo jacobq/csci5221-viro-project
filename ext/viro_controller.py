@@ -296,7 +296,7 @@ class viro_controller(object):
             dpid = mydip
             r = createDISCOVER_ECHO_REQ(myvid, dpid)
             mac = '00:14:4f:e2:b3:70'  # A fake MAC address.
-            msg = self.myviroSwitch.createOPENFLOW_Message(of.OFPP_FLOOD, mac, r, None)
+            msg = self.myviroSwitch.create_openflow_message(of.OFPP_FLOOD, mac, r, None)
             event.connection.send(msg)
             print "Sending neighbour discover packets"
 
