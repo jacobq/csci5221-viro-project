@@ -210,18 +210,7 @@ class ViroSwitch(object):
         if round > L:
             round = L
 
-        print '\n\t----> Routing Table at :', myvid, '|', mydpid, ' <----'
-        for i in range(1, L + 1):
-            if i in myViro.routingTable:
-                for j in myViro.routingTable[i]:
-                    print 'Bucket::', i, 'Nexthop:', bin2str(j[0], L), 'Port:', j[2], 'Gateway:', bin2str(j[1],
-                                                                                                          L), 'Prefix:', \
-                    j[3]
-            else:
-                print 'Bucket', i, '  --- E M P T Y --- '
-        print 'RDV STORE: ', myViro.rdvStore
-        print '\n --  --  --  --  -- --  --  --  --  -- --  --  --  --  -- \n'
-
+        print_routing_table(myvid, mydpid, myViro)
 
     def route_viro_packet(self, packet):
         global myvid, myViro
@@ -309,6 +298,22 @@ class viro_controller(object):
         # Random code, delete this when you are doing it.
         csci = 5221
 
+
+def print_routing_table(myvid, mydpid, myViro):
+    L = len(myvid)
+    print '\n\t----> Routing Table at :', myvid, '|', mydpid, ' <----'
+    for bucket in range(1, L + 1):
+        if bucket in myViro.routingTable:
+            for field in myViro.routingTable[bucket]:
+                print 'Bucket::', bucket,\
+                    'Nexthop:', bin2str(field[0], L),\
+                    'Port:', field[2],\
+                    'Gateway:', bin2str(field[1], L),\
+                    'Prefix:', field[3]
+        else:
+            print 'Bucket', bucket, '  --- E M P T Y --- '
+    print 'RDV STORE: ', myViro.rdvStore
+    print '\n --  --  --  --  -- --  --  --  --  -- --  --  --  --  -- \n'
 
 def launch(transparent=False):
     """
