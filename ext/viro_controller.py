@@ -36,7 +36,7 @@ from pox.lib.recoco import Timer
 
 log = core.getLogger()
 myViro = ""
-Mydpid = 0
+mydpid = 0
 myvid = 0
 round = 1
 
@@ -55,9 +55,9 @@ class ViroSwitch(object):
     def processViroPacket(self, packet, match=None, event=None):
 
 
-        global myvid, Mydpid, myViro
+        global myvid, mydpid, myViro
         L = len(myvid)
-        length = getdpidLength(Mydpid)
+        length = getdpidLength(mydpid)
 
         opcode = getopcode(packet)
 
@@ -68,7 +68,7 @@ class ViroSwitch(object):
             nvid = packet_fields[1]  # direct neigbour VID
 
             print "Neighbour discover Request message received from: ", nvid
-            r = createDISCOVER_ECHO_REPLY(myvid, Mydpid)
+            r = createDISCOVER_ECHO_REPLY(myvid, mydpid)
             mac = '00:14:4f:e2:b3:70'
 
             msg = self.createOPENFLOW_Message(of.OFPP_IN_PORT, mac, r, event.port)
@@ -175,8 +175,8 @@ class ViroSwitch(object):
     def runARound(self, round):
         global myViro
         routingTable = myViro.routingTable
-        global Mydpid, myvid
-        mydpid = Mydpid
+        global mydpid, myvid
+        mydpid = mydpid
         L = len(myvid)
 
 
@@ -207,7 +207,7 @@ class ViroSwitch(object):
 
 
     def startRound(self):
-        global myvid, myViro, Mydpid, round
+        global myvid, myViro, mydpid, round
         L = len(myvid)
 
         print myvid, 'Starting Round : ', round
@@ -217,7 +217,7 @@ class ViroSwitch(object):
         if round > L:
             round = L
 
-        print '\n\t----> Routing Table at :', myvid, '|', Mydpid, ' <----'
+        print '\n\t----> Routing Table at :', myvid, '|', mydpid, ' <----'
         for i in range(1, L + 1):
             if i in myViro.routingTable:
                 for j in myViro.routingTable[i]:
@@ -274,34 +274,29 @@ class viro_controller(object):
         self.myviroSwitch = ViroSwitch(event.connection, self.transparent)
 
         print "Starting Neighbor Discovery ...."
-        global Mydpid, myViro, myvid
+        global mydpid, myViro, myvid
 
-        Mydpid = dpidToStr(event.connection.dpid)  # gets the switch dpid identifier
-        if (Mydpid == '00-00-00-00-00-01'):
-            myvid = '000'
-        elif (Mydpid == '00-00-00-00-00-02'):
-            myvid = '001'
-        elif (Mydpid == '00-00-00-00-00-03'):
-            myvid = '010'
-        elif (Mydpid == '00-00-00-00-00-04'):
-            myvid = '011'
-        elif (Mydpid == '00-00-00-00-00-05'):
-            myvid = '100'
-        elif (Mydpid == '00-00-00-00-00-06'):
-            myvid = '101'
-        elif (Mydpid == '00-00-00-00-00-07'):
-            myvid = '110'
-        elif (Mydpid == '00-00-00-00-00-08'):
-            myvid = '111'
-
-        myViro = viroModule(Mydpid, myvid)
+        mydpid = dpidToStr(event.connection.dpid)   # gets the switch dpid identifier
+        myvid = self.get_vid_from_pid(mydpid)
+        myViro = viroModule(mydpid, myvid)
 
         # Call neighbour discovery function after every DISCOVER_TIME seconds
-        Timer(DISCOVER_TIME, self.neibghoorDiscover, args=[Mydpid, myvid, event], recurring=True)
+        Timer(DISCOVER_TIME, self.neibghoorDiscover, args=[mydpid, myvid, event], recurring=True)
         # Poulate routing table after every UPDATE_RT_TIME seconds
         Timer(UPDATE_RT_TIME, self.myviroSwitch.startRound, recurring=True)
         # Look for failures in the neigbours switches
         Timer(FAILURE_TIME, self.discoveryFailure, recurring=True)
+
+    def get_vid_from_pid(self, pid):
+        # To convert a pid string (assumed to be formatted like a MAC address: xx-xx-xx-xx-xx-xx)
+        # starting at "00-00-00-00-00-01" to a vid string (of '1' and '0' characters)
+        # starting at "000" we do the following:
+        #   1. Remove "-" characters to make the string numeric
+        #   2. Convert that string to an integer (assuming base 16)
+        #   3. Subtract 1 so that "00-00-00-00-00-01" corresponds with "000"
+        #   4. Convert the int back into a string using base 2
+        #   5. Zero-pad the result the 3 bits to match the behavior of the original function
+        return format(int(pid.replace('-', ''), 16) - 1, 'b').zfill(3)
 
     def neibghoorDiscover(self, mydip, myvid, event):
 
