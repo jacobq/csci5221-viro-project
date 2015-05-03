@@ -51,7 +51,7 @@ class ViroController(object):
         log.debug("Connection %s" % (event.connection))
 
         self.dpid = dpidToStr(event.connection.dpid)   # gets the switch dpid identifier
-        self.vid = self.get_vid_from_pid(self.dpid)
+        self.vid = self.get_vid_from_dpid(self.dpid)
         self.viro = ViroModule(self.dpid, self.vid)
         self.viro_switch = ViroSwitch(event.connection, self.transparent, self.viro)
 
@@ -63,7 +63,7 @@ class ViroController(object):
         # Look for failures in the neighbor switches
         Timer(FAILURE_TIME, self.discover_failures, recurring=True)
 
-    def get_vid_from_pid(self, pid):
+    def get_vid_from_dpid(self, dpid):
         # To convert a dpid string (assumed to be formatted like a MAC address: xx-xx-xx-xx-xx-xx)
         # starting at "00-00-00-00-00-01" to a vid string (of '1' and '0' characters)
         # starting at "000" we do the following:
@@ -71,8 +71,9 @@ class ViroController(object):
         #   2. Convert that string to an integer (assuming base 16)
         #   3. Subtract 1 so that "00-00-00-00-00-01" corresponds with "000"
         #   4. Convert the int back into a string using base 2
-        #   5. Zero-pad the result the 3 bits to match the behavior of the original function
-        return format(int(pid.replace('-', ''), 16) - 1, 'b').zfill(3)
+        #   5. Zero-pad the result the 3 bits to match the behavior of the original function (L = 3)
+        L = 3
+        return format(int(dpid.replace('-', ''), 16) - 1, 'b').zfill(L)
 
     def discover_neighbors(self, event): # TODO: Check caller signatures
         try:

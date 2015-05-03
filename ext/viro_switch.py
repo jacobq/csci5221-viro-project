@@ -183,7 +183,7 @@ class ViroSwitch(object):
         if self.round > L:
             self.round = L
 
-        self.print_routing_table()
+        self.viro.print_routing_table()
 
 
     def route_viro_packet(self, packet):
@@ -203,25 +203,8 @@ class ViroSwitch(object):
         # get next_hop and port
         next_hop, port = self.viro.get_next_hop(packet)
         if (next_hop != ''):
-            hwrdst = FAKE_MAC
-            msg = self.create_openflow_message(of.OFPP_IN_PORT, hwrdst, packet, int(port))
+            dst_dpid = FAKE_MAC
+            msg = self.create_openflow_message(of.OFPP_IN_PORT, dst_dpid, packet, int(port))
             self.connection.send(msg)
         else:
             print " Next hop is none "
-
-
-    def print_routing_table(self):
-        L = len(self.vid)
-        print '\n\t----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
-        for bucket in range(1, L + 1):
-            if bucket in self.viro.routing_table:
-                for field in self.viro.routing_table[bucket]:
-                    print 'Bucket::', bucket,\
-                        'Nexthop:', bin2str(field[0], L),\
-                        'Port:', field[2],\
-                        'Gateway:', bin2str(field[1], L),\
-                        'Prefix:', field[3]
-            else:
-                print 'Bucket', bucket, '  --- E M P T Y --- '
-        print 'RDV STORE: ', self.viro.rdvStore
-        print '\n --  --  --  --  -- --  --  --  --  -- --  --  --  --  -- \n'

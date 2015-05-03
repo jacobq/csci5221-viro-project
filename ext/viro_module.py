@@ -49,18 +49,20 @@ class ViroModule(object):
 
 
         # Printing routing table
-        print '\n\t----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
+        self.print_routing_table()
 
-        for i in range(1, self.L + 1):
-            if i in self.routing_table:
-                for j in self.routing_table[i]:
-                    print 'Bucket::', i,\
-                        'Nexthop:', bin2str(j[0], self.L),\
-                        'Port:', j[2],\
-                        'Gateway:', bin2str(j[1], self.L),\
-                        'Prefix:', j[3]
+    def print_routing_table(self):
+        print '\n\t----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
+        for bucket in range(1, self.L + 1):
+            if bucket in self.routing_table:
+                for field in self.routing_table[bucket]:
+                    print 'Bucket::', bucket, \
+                        'Nexthop:', bin2str(field[0], self.L), \
+                        'Port:', field[2], \
+                        'Gateway:', bin2str(field[1], self.L), \
+                        'Prefix:', field[3]
             else:
-                print 'Bucket::', i, '  --- E M P T Y --- '
+                print 'Bucket::', bucket, '  --- E M P T Y --- '
         print 'RDV STORE: ', self.rdv_store
         print '\n --  --  --  --  -- --  --  --  --  -- --  --  --  --  -- \n'
 

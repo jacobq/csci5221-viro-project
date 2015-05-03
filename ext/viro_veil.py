@@ -2,7 +2,7 @@ import socket, struct, sys, random
 # from collections  import namedtuple
 
 # Local imports 
-from viro_constant import *  # for the constants.
+from viro_constant import *
 
 
 def get_dpid_length(dpid):
