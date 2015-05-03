@@ -26,34 +26,35 @@ class ViroModule(object):
         bucket_info = {
             'port': port,
             'prefix': get_prefix(self.vid, distance),
-            'gateway': int(self.vid,2),
+            'gateway': int(self.vid, 2),    # FIXME: Why are we always the gateway??
             'next_hop': int(neighbor_vid, 2),
             'default': True
         }
 
         if not is_duplicate_bucket(self.routing_table[distance], bucket_info):
             self.routing_table[distance].append(bucket_info)
+        else:
+            print "Ignoring duplicate routing entry", bucket_info
 
         # Saving the information in the neighbors table.
         print "Updating the Neighbors list..."
         self.update_neighbors(neighbor_vid, distance)
 
-        # Printing routing table
         self.print_routing_table()
 
     def print_routing_table(self):
         print '\n----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
-        for bucket in range(1, self.L + 1):
-            if bucket in self.routing_table:
-                for fields in self.routing_table[bucket]:
-                    print 'Bucket::', bucket, \
-                          'Port:', fields['port'], \
-                          'Prefix:', fields[['prefix']],\
-                          'Gateway:', bin2str(fields[['gateway']], self.L), \
-                          'Next hop:', bin2str(fields['next_hop'], self.L), \
-                          'Default:', fields['default']
+        for distance in range(1, self.L + 1):
+            if distance in self.routing_table:
+                for entry in self.routing_table[distance]:
+                    print 'Bucket::', distance, \
+                          'Port:', entry['port'], \
+                          'Prefix:', entry['prefix'],\
+                          'Gateway:', bin2str(entry['gateway'], self.L), \
+                          'Next hop:', bin2str(entry['next_hop'], self.L), \
+                          'Default:', entry['default']
             else:
-                print 'Bucket::', bucket, '--- E M P T Y ---'
+                print 'Bucket::', distance, '--- E M P T Y ---'
         print 'RDV STORE: ', self.rdv_store
         print '\n--  --  --  --  --  --  --  --  --  --  --  --  --  --  --\n'
 

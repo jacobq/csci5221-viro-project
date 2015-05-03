@@ -228,12 +228,15 @@ def get_prefix(vid, dist):
 
 # check if the bucket is already present in the set or not:
 def is_duplicate_bucket(bucket_list, bucket):
-    is_duplicate = True
+    is_duplicate = False
     for i in range(0, len(bucket_list)):
-        for j in bucket: # Assume bucket and bucket_list[i] are arrays of the same length but allow that length to vary
+        all_fields_equal = True
+        for j in bucket:
             if bucket_list[i][j] != bucket[j]:
-                is_duplicate = False
-                return is_duplicate
+                all_fields_equal = False
+        if all_fields_equal:
+            is_duplicate = True
+            return is_duplicate
     return is_duplicate
 
 
