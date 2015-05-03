@@ -2,42 +2,28 @@
 # GLOBAL VARIABLES
 #########################################
 
-# NEW OPERATIONS
-RDV_PUBLISH = 0x1000
-RDV_QUERY = 0x2000
-RDV_REPLY = 0x3000
-RDV_WITHDRAW = 0x7000
-GW_WITHDRAW = 0x6000
-DISCOVERY_ECHO_REQUEST = 0x4000
-DISCOVERY_ECHO_REPLY = 0x5000
-VIRO_CONTROL = 0x0803
-VIRO_DATA = 0x0802
-VIRO_DATA_OP = 0x0000
-
 # OPERATIONS
-ECHO_REQUEST = 0x0500
-ECHO_REPLY = 0x0600
-STORE_REQUEST = 0x0700
+VIRO_DATA_OP =            0x0000
+ECHO_REQUEST =            0x0500
+ECHO_REPLY =              0x0600
+STORE_REQUEST =           0x0700
 SWITCH_REGISTER_REQUEST = 0x0900
-SWITCH_REGISTER_REPLY = 0x0A00
+SWITCH_REGISTER_REPLY =   0x0A00
+RDV_PUBLISH =             0x1000
+RDV_QUERY =               0x2000
+RDV_REPLY =               0x3000
+DISCOVERY_ECHO_REQUEST =  0x4000
+DISCOVERY_ECHO_REPLY =    0x5000
+GW_WITHDRAW =             0x6000
+RDV_WITHDRAW =            0x7000
+VIRO_DATA =               0x0802
+VIRO_CONTROL =            0x0803
 
-ARP_REPLY = 0x02
-ARP_REQUEST = 0x01
-R_ARP_REPLY = 0x04
-R_ARP_REQUEST = 0x03
 # OTHER PARTS OF THE HEADER
 HTYPE = 0x1
 PTYPE = 0x0800
 HLEN = 0x06
 PLEN = 0x04
-
-VID_LEN = 0x04
-DPID_LEN = 0x06
-PORT_LEN = 0x04
-
-
-# LENGTH OF THE HEADER in bytes
-HEADER_LEN = 8
 
 # HARDWARE ADDRESS FOR THE VEIL MASTER
 VEIL_MASTER_MAC = "00:00:00:00:00:00"
@@ -52,23 +38,10 @@ OPER_LEN = 2
 # OFFSET FOR THE ECHO_SRC_VID
 ECHO_SRC_OFFSET = 8
 
-# ROUND_TIME this is the waiting time for each round in number of seconds
-ROUND_TIME = 5
-
-# NEIGHBOR DISCOVERY wait time
-DISCOVER_TIME = 5
-
-# Wait time for populating routing table
-UPDATE_RT_TIME = 10
-
-# Failure time interval
-FAILURE_TIME = 7
-
-# Time interval to discover neibghours failures
-ALERT_FAILURE = 15
-
-# TIME INTERVAL FOR PERIODIC ECHO REQUESTS SENT BY THE VEIL MASTER IN SECONDS
-ECHO_REQUEST_INTERVAL = 20000
+# The following _TIME parameter are all measured in seconds
+ROUND_TIME = 10     # Time between "bottom up" rounds for routing table construction (RDV_PUBLISH / RDV_QUERY)
+DISCOVER_TIME = 5   # Time between checking neighbor status
+FAILURE_TIME = 7    # Time between checks for failures
 
 # OPERATION NUMBER TO STRING MAPPING
 OPERATION_NAMES = {

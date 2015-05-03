@@ -95,7 +95,7 @@ class ViroSwitch(object):
                     return
 
                 else:
-                    rvdReplyPacket = self.viro.rvd_query(packet)
+                    rvdReplyPacket = self.viro.process_rvd_query(packet)
 
                     if (rvdReplyPacket == ''):
                         return
@@ -108,7 +108,7 @@ class ViroSwitch(object):
 
 
             elif op_code == RDV_PUBLISH:
-                self.viro.rdv_publish(packet)
+                self.viro.process_rdv_publish(packet)
 
 
             elif op_code == RDV_REPLY:

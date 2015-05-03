@@ -170,7 +170,7 @@ class ViroModule(object):
         self.rdv_request_tracker[gw].append(new_entry)
 
 
-    def rdv_publish(self, packet):
+    def process_rdv_publish(self, packet):
         src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
         payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
 
@@ -186,7 +186,7 @@ class ViroModule(object):
         return
 
 
-    def rvd_query(self, packet):
+    def process_rvd_query(self, packet):
         src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
         payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
         k = int(payload, 2)

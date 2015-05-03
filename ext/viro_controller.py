@@ -56,11 +56,8 @@ class ViroController(object):
         self.viro_switch = ViroSwitch(event.connection, self.transparent, self.viro)
 
         print "Starting Neighbor Discovery ...."
-        # Call neighbor discovery function after every DISCOVER_TIME seconds
         Timer(DISCOVER_TIME, self.discover_neighbors, args=[event], recurring=True)
-        # Populate routing table after every UPDATE_RT_TIME seconds
-        Timer(UPDATE_RT_TIME, self.viro_switch.start_round, recurring=True)
-        # Look for failures in the neighbor switches
+        Timer(ROUND_TIME, self.viro_switch.start_round, recurring=True)
         Timer(FAILURE_TIME, self.discover_failures, recurring=True)
 
     def get_vid_from_dpid(self, dpid):
