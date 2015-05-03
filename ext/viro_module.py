@@ -25,10 +25,10 @@ class ViroModule(object):
             self.routing_table[distance] = []
 
         bucket_info = {
-            'port': port,
             'prefix': get_prefix(self.vid, distance),
             'gateway': int(self.vid, 2),
             'next_hop': int(neighbor_vid, 2),
+            'port': port,
             'default': True
         }
 
@@ -72,25 +72,25 @@ class ViroModule(object):
         else:
             payload = int(gw, 2)
 
-        delete = {}
+        to_be_deleted = {}
         for level in self.routing_table:
-            delete[level] = []
+            to_be_deleted[level] = []
             for idx in xrange(0, len(self.routing_table[level])):
                 entry = self.routing_table[level][idx]
-                if entry['gateway'] == payload or entry['next_hop'] == payload:  # Remove if either gateway or nextHop failed
-                    delete[level].append(idx)
+                if entry['gateway'] == payload or entry['next_hop'] == payload:
+                    to_be_deleted[level].append(idx)
 
-        for index in delete:
-            for lis in delete[index]:
-                del self.routing_table[index][lis]
+        for level in to_be_deleted:
+            for index in to_be_deleted[level]:
+                del self.routing_table[level][index]
 
         bucket_ = []
         for level in self.routing_table:
             if len(self.routing_table[level]) == 0:
                 bucket_.append(level)
 
-        for index in bucket_:
-            del self.routing_table[index]
+        for level in bucket_:
+            del self.routing_table[level]
 
         return
 
@@ -121,21 +121,20 @@ class ViroModule(object):
 
 
     def get_next_hop(self, packet):
-        # global routing_table
-
-        dst = get_dest(packet, self.L)
+        dst_vid = get_dest(packet, self.L)
         next_hop = ''
         packet_type = get_operation(packet)
         port = ''
 
         while next_hop == '':
 
-            distance = delta(self.vid, dst)
+            distance = delta(self.vid, dst_vid)
             if distance == 0:
                 break
 
             if distance in self.routing_table:
                 if len(self.routing_table[distance]) > 0:
+                    # TODO: Will need to modify so that this doesn't just take the first entry every time
                     next_hop = str(self.routing_table[distance][0]['next_hop'])
                     port = int(self.routing_table[distance][0]['port'])
                     break
@@ -143,13 +142,13 @@ class ViroModule(object):
             if (packet_type != RDV_PUBLISH) and (packet_type != RDV_QUERY):
                 break
 
-            print 'No next hop for destination: ', dst, 'distance: ', distance
+            print 'No next hop for destination: ', dst_vid, 'distance: ', distance
 
             # flip the distance bit to
-            dst = flip_bit(dst, distance)
+            dst_vid = flip_bit(dst_vid, distance)
 
         if next_hop == '':
-            print 'No route to destination', 'MyVID: ', self.vid, 'DEST: ', dst
+            print 'No route to destination', 'MyVID: ', self.vid, 'DEST: ', dst_vid
             return ('', '')
 
         return (next_hop, port)
@@ -285,11 +284,17 @@ class ViroModule(object):
         next_hop, port = self.get_next_hop_rdv(gw_str)
         if next_hop == '':
             print 'ERROR: no next_hop found for the gateway:', gw_str
-            print 'New routing information couldnt be added! '
+            print "New routing information couldn't be added!"
             return
 
         next_hop_int = int(next_hop, 2)
-        bucket_info = [next_hop_int, gw, port, get_prefix(self.vid, k)]
+        bucket_info = {
+            'prefix': get_prefix(self.vid, k),
+            'gateway': gw,
+            'next_hop': next_hop_int,
+            'port': port,
+            'default': True
+        }
 
         self.routing_table[k] = []
         self.routing_table[k].append(bucket_info)
@@ -332,12 +337,14 @@ class ViroModule(object):
             print 'New routing information couldnt be added! '
             return
 
-        next_hop_int = int(next_hop, 2)
-
         # Destination Subtree-k
-        gw = int(gw_str, 2)
-        bucket_info = [next_hop_int, gw, port, get_prefix(self.vid, k)]
-
+        bucket_info = {
+            'prefix': get_prefix(self.vid, k),
+            'gateway': int(gw_str, 2),
+            'next_hop': int(next_hop, 2),
+            'port': port,
+            'default': True
+        }
         self.routing_table[k] = []
         self.routing_table[k].append(bucket_info)
 
