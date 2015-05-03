@@ -77,7 +77,7 @@ class ViroController(object):
 
     def discover_neighbors(self, event): # TODO: Check caller signatures
         try:
-            r = create_DISCOVER_ECHO_REQ(self.vid, self.dpid)
+            r = create_DISCOVER_ECHO_REQUEST(self.vid, self.dpid)
             mac = FAKE_MAC
             msg = self.viro_switch.create_openflow_message(of.OFPP_FLOOD, mac, r, None)
             event.connection.send(msg)

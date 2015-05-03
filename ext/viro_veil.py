@@ -25,7 +25,7 @@ def get_mac_array(mac):
 
 # convert a byte array into the string format            
 def get_mac_hex_string(bytes):
-    macstring = ''
+    mac_string = ''
     #print "Converting Bytes: ", bytes
     for i in range(0, 6):
         #print 'Bytes[i] = ', bytes[i]
@@ -33,10 +33,10 @@ def get_mac_hex_string(bytes):
         s = hex(bytes[i]).replace('0x', '')
         if len(s) < 2:
             s = '0' + s
-        macstring = macstring + s
+        mac_string = mac_string + s
         if i < 5:
-            macstring = macstring + ':'
-    return macstring
+            mac_string = mac_string + ':'
+    return mac_string
 
 
 # Extract the operation from the packet
@@ -310,18 +310,18 @@ def create_store_packet(ip_to_store, vid_to_store, src_vid, dst_vid):
     return store_packet
 
 
-def create_DISCOVER_ECHO_REQ(vid, dst_dpid):
+def create_DISCOVER_ECHO_REQUEST(vid, dst_dpid):
     fwd = struct.pack('!I', 0)
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2))    # Sender VID (32 bits)
-    return fwd + res + pack_header(DISC_ECHO_REQ) + src_vid + pack_mac(dst_dpid)
+    return fwd + res + pack_header(DISCOVERY_ECHO_REQUEST) + src_vid + pack_mac(dst_dpid)
 
 
 def create_DISCOVER_ECHO_REPLY(vid, dpid):
     fwd = struct.pack('!I', int('0', 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
-    return fwd + res + pack_header(DISC_ECHO_REPLY) + src_vid + pack_mac(dpid)
+    return fwd + res + pack_header(DISCOVERY_ECHO_REPLY) + src_vid + pack_mac(dpid)
 
 
 def create_VIRO_DATA(src_vid, dst_vid, fwd_vid, ttl, payload):

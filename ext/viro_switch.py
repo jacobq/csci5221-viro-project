@@ -58,9 +58,7 @@ class ViroSwitch(object):
 
         op_code = get_op_code(packet)
 
-        if op_code == DISC_ECHO_REQ:  # Handles the echo neibghour discover message/packet
-            # sends a disc_echo_reply packet
-
+        if op_code == DISCOVERY_ECHO_REQUEST:
             packet_fields = print_discover_packet(packet, L, length)  # gets the fields from the packet
             neighbor_vid = packet_fields[1]
 
@@ -72,13 +70,12 @@ class ViroSwitch(object):
             print "Neighbor discovery reply message sent"
 
 
-        elif op_code == DISC_ECHO_REPLY:  # Handles the echo neighbor reply message/packet
+        elif op_code == DISCOVERY_ECHO_REPLY:
             packet_fields = print_discover_packet(packet, L, length)  # gets the fields from the packet
             neighbor_vid = packet_fields[1]
             neighbor_port = event.port
             print "Neighbor discovery reply message received from: ", neighbor_vid
             self.viro.update_routing_table_based_on_neighbor(neighbor_vid, neighbor_port)
-
 
         else:
             # print_packet(packet, L)
@@ -140,13 +137,26 @@ class ViroSwitch(object):
         return msg
 
 
+    def start_round(self):
+        print self.vid, 'Starting Round : ', self.round
+
+        self.run_round(self.round)
+
+        # Advance to next round, if not already at final round (L)
+        L = len(self.vid)
+        self.round += 1
+        if self.round > L:
+            self.round = L
+
+        self.viro.print_routing_table()
+
+
     def run_round(self, round):
         routing_table = self.viro.routing_table
         L = len(self.vid)
 
         # start from round 2 since connectivity in round 1 is already learnt using the physical neighbors
         for i in range(2, round + 1):
-
             # see if routing entry for this round is already available in the routing table.
             if i in routing_table and len(routing_table[i]) > 0:
                 # publish the information if it is already there
@@ -159,19 +169,6 @@ class ViroSwitch(object):
                 print "Sending rdv query messages"
                 packet, dst = self.viro.query(i)
                 self.route_viro_packet(packet)
-
-    def start_round(self):
-        L = len(self.vid)
-
-        print self.vid, 'Starting Round : ', self.round
-        self.run_round(self.round)
-
-        # Advance to next round but not beyond maximum (L)
-        self.round += 1
-        if self.round > L:
-            self.round = L
-
-        self.viro.print_routing_table()
 
 
     def route_viro_packet(self, packet):
