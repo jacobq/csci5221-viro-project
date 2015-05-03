@@ -16,27 +16,91 @@ class ViroModule(object):
 
     def update_routing_table_based_on_neighbor(self, neighbor_vid, port):
         print "update_routing_table_based_on_neighbor", neighbor_vid, port
-        distance = delta(neighbor_vid, self.vid)
-        # If we don't have any entries at this distance -> create a new bucket
-        if distance not in self.routing_table:
-            self.routing_table[distance] = []
+        bucket = delta(neighbor_vid, self.vid)
+        # If we don't have any entries at this bucket -> create a new bucket
+        if bucket not in self.routing_table:
+            self.routing_table[bucket] = []
 
         bucket_info = {
-            'prefix': get_prefix(self.vid, distance),
+            'prefix': get_prefix(self.vid, bucket),
             'gateway': int(self.vid, 2),
             'next_hop': int(neighbor_vid, 2),
-            'port': port,
-            'default': True
+            'port': port
         }
 
-        if not is_duplicate_bucket(self.routing_table[distance], bucket_info):
-            self.routing_table[distance].append(bucket_info)
+        if not is_duplicate_bucket(self.routing_table[bucket], bucket_info):
+            self.routing_table[bucket].append(bucket_info)
+            self.recalculate_default_gw_for_bucket(bucket)
         else:
             print "Ignoring duplicate routing entry", bucket_info
 
         print "Updating the Neighbors list..."
-        self.update_neighbors(neighbor_vid, distance)
+        self.update_neighbors(neighbor_vid, bucket)
         self.print_routing_table()
+
+    # Presumably a gateway has just been added to or removed from the list for this bucket,
+    # so we need to do the following:
+    # - (Re)compute the logical distance of each gateway
+    # - Set a gateway having minimal distance to be the default (and all others not to be the default)
+    # - Limit the number of gateways stored to the maximum allowed
+    #   as defined by MAX_GW_PER_LEVEL parameter (which is assumed to be > 1).
+    #   To do that we remove a gateway whose distance is maximal,
+    #   and which was not selected as the default (in the case of all gateways being equidistant)
+    def recalculate_default_gw_for_bucket(self, bucket):
+        print "Recalculating default gateway for bucket ",  bucket
+        entries = self.routing_table[bucket]
+        min_distance = float("inf")
+        min_gw = None
+        max_distance = 0
+        max_gw = None
+        for entry in entries:
+            # Clear default flag -- will set again once all distances have been computed
+            entry['default'] = False
+
+            # Compute distance
+            gw = bin2str(entry['gateway'], self.L)
+            distance = delta(gw, self.vid)
+
+            # Update min/max pointers
+            if distance > max_distance:
+                max_distance = distance
+                max_gw = gw
+            if distance < min_distance:
+                min_distance = distance
+                min_gw = gw
+
+        if min_gw is None or max_gw is None:
+            print "recalculate_default_gw_for_bucket did not find a min and max distance gateways (no gateways)"
+            return
+
+        print "min_distance", min_distance, "min_gw = ", min_gw,\
+              "max_distance", max_distance, "max_gw = ", max_gw
+
+        # Set (possibly new) default gateway for this bucket to be one having minimal distance
+        min_gw['default'] = True
+
+        # Limit number of entries (assume for now that there will be at most 1 too many)
+        if len(entries) > MAX_GW_PER_LEVEL:
+            if not max_gw['default']:
+                # Delete gateway at maximal distance (non-equidistant case)
+                max_gw_index = entries.index(max_gw)
+                del entries[max_gw_index]
+            else:
+                # max_distance == min_distance (equidistant case)
+                # So just delete any non-default gateway
+                next_gw_index = (entries.index(max_gw) + 1) % len(entries)
+                del entries[next_gw_index]
+
+        # In case somehow there were more than 1 too many gateways then do this again.
+        # If this were expected to happen often then we could do something more efficient for that case,
+        # such as sort the entries in order of increasing distance then removing all beyond maximum,
+        # but this is not expected to happen. We just have this check here to ensure correctness in case
+        # of this unexpected scenario where there is more than 1 gateway that needs to be removed
+        # (since this function should be called each time a gateway is added or removed).
+        if len(entries) > MAX_GW_PER_LEVEL:
+            print "WARNING: Recursively calling recalculate_default_gw_for_bucket; unexpected situation"
+            self.recalculate_default_gw_for_bucket(bucket)
+
 
 
     def update_neighbors(self, neighbor_vid, distance):
@@ -252,11 +316,11 @@ class ViroModule(object):
             'prefix': get_prefix(self.vid, k),
             'gateway': int(gw_str, 2),
             'next_hop': int(next_hop, 2),
-            'port': port,
-            'default': True
+            'port': port
         }
         self.routing_table[k] = []
         self.routing_table[k].append(bucket_info)
+        self.recalculate_default_gw_for_bucket(k)
 
 
     def process_rdv_reply(self, packet):
@@ -281,13 +345,12 @@ class ViroModule(object):
             'prefix': get_prefix(self.vid, k),
             'gateway': gw,
             'next_hop': next_hop_int,
-            'port': port,
-            'default': True
+            'port': port
         }
 
         self.routing_table[k] = []
         self.routing_table[k].append(bucket_info)
-
+        self.recalculate_default_gw_for_bucket(k)
 
     # FIXME: Not used?
     def process_rdv_withdraw(self, packet):

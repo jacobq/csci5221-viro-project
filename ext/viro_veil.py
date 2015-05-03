@@ -103,14 +103,12 @@ def receive_packet(sock):
 
 
 # check if the bucket is already present in the set or not:
-def is_duplicate_bucket(bucket_list, bucket):
+def is_duplicate_bucket(bucket_list, new_bucket):
     is_duplicate = False
-    for i in range(0, len(bucket_list)):
-        all_fields_equal = True
-        for j in bucket:
-            if bucket_list[i][j] != bucket[j]:
-                all_fields_equal = False
-        if all_fields_equal:
+    for bucket in bucket_list:
+        if bucket['prefix'] == new_bucket['prefix'] and \
+           bucket['gateway'] == new_bucket['gateway'] and \
+           bucket['next_hop'] == new_bucket['next_hop']:
             is_duplicate = True
             return is_duplicate
     return is_duplicate
@@ -159,8 +157,8 @@ def create_RDV_PUBLISH(bucket, vid, dst):
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
     dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
-    z = struct.pack("!I", bucket['next_hop']) # Destination Subtree-k
-    return fwd + res + pack_header(RDV_PUBLISH) + src_vid + dst_vid + z
+    next_hop = struct.pack("!I", bucket['next_hop']) # Destination Subtree-k
+    return fwd + res + pack_header(RDV_PUBLISH) + src_vid + dst_vid + next_hop
 
 
 # bucket_dist is an int; other arguments are binary strings
@@ -169,8 +167,7 @@ def create_RDV_QUERY(bucket_distance, vid, dst):
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
     dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
-    z = struct.pack("!I", bucket_distance)   # Destination Subtree-k
-    return fwd + res + pack_header(RDV_QUERY) + src_vid + dst_vid + z
+    return fwd + res + pack_header(RDV_QUERY) + src_vid + dst_vid + struct.pack("!I", bucket_distance)
 
 
 # gw is an int; other arguments are binary strings
@@ -180,8 +177,7 @@ def create_RDV_REPLY(gw, bucket_distance, vid, dst):
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
     dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
     bucket_distance = struct.pack("!I", bucket_distance)
-    z = struct.pack("!I", gw) # Destination Subtree-k
-    return fwd + res + pack_header(RDV_REPLY) + src_vid + dst_vid + bucket_distance + z
+    return fwd + res + pack_header(RDV_REPLY) + src_vid + dst_vid + bucket_distance + struct.pack("!I", gw)
 
 
 def create_RDV_WITHDRAW(failed_node, vid, dst):
@@ -190,8 +186,7 @@ def create_RDV_WITHDRAW(failed_node, vid, dst):
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
     dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
-    z = struct.pack("!I", failed_node) # Destination Subtree-k
-    return fwd + res + pack_header(RDV_WITHDRAW) + src_vid + dst_vid + z
+    return fwd + res + pack_header(RDV_WITHDRAW) + src_vid + dst_vid + struct.pack("!I", failed_node)
 
 
 def create_GW_WITHDRAW(failed_gw, vid, dst):
@@ -268,7 +263,8 @@ def delta(vid1, vid2):
     distance = L
     for i in range(0, L):
         if vid1[i] == vid2[i]:
-            distance = distance - 1
+            distance -= 1
         else:
             return distance
+    print "Logical distance between ", vid1, "and", vid2, "is", distance
     return distance
