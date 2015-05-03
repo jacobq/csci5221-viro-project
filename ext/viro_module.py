@@ -95,38 +95,12 @@ class ViroModule(object):
         return
 
 
-    def find_entry(self, nvid, bucket=None):
-        # into the neighbors table during neighbor discovery process.
-        if bucket != None:
-            index = ''
-            n = len(self.routing_table[bucket])
-
-            for i in range(0, n):
-                print self.routing_table[bucket][i]
-                next_hop = bin2str(self.routing_table[bucket][i]['next_hop'], self.L)
-                if next_hop == nvid:
-                    index = i
-                    break
-        else:
-
-            index = {}
-            for level in self.routing_table:
-                index[level] = -1
-                for idx in xrange(0, len(self.routing_table[level])):
-                    next_hop = bin2str(self.routing_table[level][idx]['next_hop'], self.L)
-                    if next_hop == nvid:
-                        index[level] = idx
-
-        return index
-
-
     def publish(self, bucket, k):
         dst = get_rendezvous_id(k, self.vid)
         packet = create_RDV_PUBLISH(bucket, self.vid, dst)
 
         print 'Node :', self.vid, ' is publishing neighbor', bin2str(bucket[0], self.L), 'to rdv:', dst
         return (packet, dst)
-
 
 
     def withdraw(self, failedNode, RDV_level):
@@ -221,7 +195,7 @@ class ViroModule(object):
         print "RDV_QUERY message received from: ", src_vid
 
         # search in rdv store for the logically closest gateway to reach kth distance away neighbor
-        gw = self.find_a_gw(self.rdv_store, k, src_vid)
+        gw = self.find_a_gw(k, src_vid)
 
         # if found then form the reply packet and send to src_vid
         if gw == '':
@@ -242,15 +216,16 @@ class ViroModule(object):
 
         return reply_packet
 
-    def find_a_gw(self, rdv_store, k, src_vid):
+
+    def find_a_gw(self, k, src_vid):
         gw = {}
-        if k not in rdv_store:
+        if k not in self.rdv_store:
             return ''
-        for t in rdv_store[k]:
-            r = delta(t[0], src_vid)
-            if r not in gw:
-                gw[r] = t[0]
-            gw[r] = t[0]
+        for t in self.rdv_store[k]:
+            distance = delta(t[0], src_vid)
+            if distance not in gw:
+                gw[distance] = t[0]
+            gw[distance] = t[0]
         if len(gw) == 0:
             return ''
         s = gw.keys()
@@ -259,22 +234,41 @@ class ViroModule(object):
         return gw[s[0]]
 
 
-    def get_gw(self, next_hop):
-
+    # TODO: Dead code -- may be incorrect
+    def get_gw_list(self, next_hop):
+        print 'FIXME: get_gw_list should not be called yet -- implementation may not be correct'
         gw_list = []
         # calculate logical distance
-
         print "Finding the gateways..."
-        index = self.find_entry(next_hop)
-
-        for level in index:
+        entries = self.find_entries_with_neighbor_as_next_hop(next_hop)
+        for level in entries:
             if level != 1 or level != -1:
-                bucket = index[level]
+                bucket = entries[level]
                 # return gateway from routing_table with distance = bucket
                 gw = bin2str(self.routing_table[level][bucket]['gateway'], self.L)
                 gw_list.append(gw)
 
         return gw_list
+
+
+    # Returns a dictionary that is like a copy of the routing table except:
+    # - There is exactly 1 entry for each bucket
+    # - If the next hop in a routing table entry matches this neighbor_vid
+    #   then that entry is copied into this dictionary
+    # - Otherwise (e.g. no matching entry found for bucket/level) the corresponding entry is set to -1
+    # TODO: Dead code -- may be incorrect
+    def find_entries_with_neighbor_as_next_hop(self, neighbor_vid):
+        print 'FIXME: find_entries_with_neighbor_as_next_hop should not be called yet -- implementation may not be correct'
+        # Note: removed dead code from original implementation (may need to add back later when needed)
+        result = {}
+        for bucket in self.routing_table:
+            result[bucket] = -1
+            for entry in self.routing_table[bucket]:
+                next_hop = bin2str(self.routing_table[bucket][entry]['next_hop'], self.L)
+                if next_hop == neighbor_vid:
+                    result[bucket] = entry
+
+        return result
 
 
     def rdv_reply(self, packet):
