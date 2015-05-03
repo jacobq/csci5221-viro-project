@@ -42,11 +42,11 @@ class ViroSwitch(object):
 
                 print  "VIRO packet received....."
                 payload = packet.payload
-                mypacket = payload
-                [packetType] = struct.unpack("!H", mypacket[6:8])
+                my_packet = payload
+                [packet_type] = struct.unpack("!H", my_packet[6:8])
 
-                if (packetType == VIRO_CONTROL):
-                    self.process_viro_packet(mypacket, match, event)  # handling the VIRO REQUEST
+                if (packet_type == VIRO_CONTROL):
+                    self.process_viro_packet(my_packet, match, event)  # handling the VIRO REQUEST
                     return
         except:
             print "Error while processing packet"
@@ -54,18 +54,18 @@ class ViroSwitch(object):
 
     def process_viro_packet(self, packet, match=None, event=None):
         L = len(self.vid)
-        length = getdpidLength(self.dpid)
+        length = get_dpid_length(self.dpid)
 
-        op_code = getopcode(packet)
+        op_code = get_op_code(packet)
 
         if op_code == DISC_ECHO_REQ:  # Handles the echo neibghour discover message/packet
             # sends a disc_echo_reply packet
 
-            packet_fields = printDiscoverPacket(packet, L, length)  # gets the fields from the packet
+            packet_fields = print_discover_packet(packet, L, length)  # gets the fields from the packet
             neighbor_vid = packet_fields[1]
 
             print "Neighbor discovery request message received from: ", neighbor_vid
-            r = createDISCOVER_ECHO_REPLY(self.vid, self.dpid)
+            r = create_DISCOVER_ECHO_REPLY(self.vid, self.dpid)
             mac = FAKE_MAC
             msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, r, event.port)
             self.connection.send(msg)
@@ -73,34 +73,34 @@ class ViroSwitch(object):
 
 
         elif op_code == DISC_ECHO_REPLY:  # Handles the echo neibghour reply message/packet
-            packet_fields = printDiscoverPacket(packet, L, length)  # gets the fields from the packet
+            packet_fields = print_discover_packet(packet, L, length)  # gets the fields from the packet
             neighbor_vid = packet_fields[1]
             neighbor_port = event.port
 
             print "Neighbor discovery reply message received from: ", neighbor_vid
 
-            self.viro.updateRoutingTable(neighbor_vid, neighbor_port)
+            self.viro.update_routing_table(neighbor_vid, neighbor_port)
 
 
         else:
-            # printPacket(packet, L)
-            dst = getDest(packet, L)  # gets the packet dst
-            src = getSrc(packet, L)  # gets the packet src
+            # print_packet(packet, L)
+            dst_vid = get_dest(packet, L)  # gets the packet dst_vid
+            src_vid = get_src(packet, L)  # gets the packet src_vid
 
             # forward the packet if I am not the destination
-            if dst != self.vid:
+            if dst_vid != self.vid:
                 self.route_viro_packet(packet)
                 return
 
             if op_code == RDV_QUERY:
                 print "RDV_QUERY message received"
-                if src == self.vid:
+                if src_vid == self.vid:
                     print "I am the rdv point - processing the packet"
-                    self.viro.selfRVDQuery(packet)
+                    self.viro.self_rvd_query(packet)
                     return
 
                 else:
-                    rvdReplyPacket = self.viro.rvdQuery(packet)
+                    rvdReplyPacket = self.viro.rvd_query(packet)
 
                     if (rvdReplyPacket == ''):
                         return
@@ -113,13 +113,13 @@ class ViroSwitch(object):
 
 
             elif op_code == RDV_PUBLISH:
-                self.viro.rdvPublish(packet)
+                self.viro.rdv_publish(packet)
 
 
             elif op_code == RDV_REPLY:
 
                 print "RDV_REPLY message received"
-                self.viro.rdvReply(packet)
+                self.viro.rdv_reply(packet)
 
             elif op_code == VIRO_DATA_OP:
                 # The part where it handles VIRO data packet
@@ -143,18 +143,18 @@ class ViroSwitch(object):
 
 
     def run_round(self, round):
-        routingTable = self.viro.routingTable
+        routing_table = self.viro.routing_table
         L = len(self.vid)
 
         # start from round 2 since connectivity in round 1 is already learnt using the physical neighbors
         for i in range(2, round + 1):
 
             # see if routing entry for this round is already available in the routing table.
-            if i in routingTable:
-                if len(routingTable[i]) > 0:
+            if i in routing_table:
+                if len(routing_table[i]) > 0:
 
                     # publish the information if it is already there
-                    for t in routingTable[i]:
+                    for t in routing_table[i]:
                         if t[1] == int(self.vid, 2):
                             print "Sending rdv publish messages"
                             packet, dst = self.viro.publish(t, i)
@@ -192,7 +192,7 @@ class ViroSwitch(object):
 
 
         L = len(self.vid)
-        dst = getDest(packet, L)
+        dst = get_dest(packet, L)
 
         # If it's me
         if (dst == self.vid):
@@ -200,9 +200,9 @@ class ViroSwitch(object):
             self.process_viro_packet(packet)
             return
 
-        # get nextHop and port
-        nextHop, port = self.viro.getNextHop(packet)
-        if (nextHop != ''):
+        # get next_hop and port
+        next_hop, port = self.viro.get_next_hop(packet)
+        if (next_hop != ''):
             hwrdst = FAKE_MAC
             msg = self.create_openflow_message(of.OFPP_IN_PORT, hwrdst, packet, int(port))
             self.connection.send(msg)
@@ -214,8 +214,8 @@ class ViroSwitch(object):
         L = len(self.vid)
         print '\n\t----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
         for bucket in range(1, L + 1):
-            if bucket in self.viro.routingTable:
-                for field in self.viro.routingTable[bucket]:
+            if bucket in self.viro.routing_table:
+                for field in self.viro.routing_table[bucket]:
                     print 'Bucket::', bucket,\
                         'Nexthop:', bin2str(field[0], L),\
                         'Port:', field[2],\
