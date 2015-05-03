@@ -36,6 +36,19 @@ def get_mac_hex_string(bytes):
     return mac_string
 
 
+# get the prefix of kth bucket (k = dist) for node vid
+def get_prefix(vid, dist):
+    L = len(vid)
+    prefix = vid[:L - dist]
+    # flip the (dist-1)th bit from the right
+    if vid[L - dist] == '0':
+        prefix = prefix + '1'
+    else:
+        prefix = prefix + '0'
+    prefix = prefix + (dist - 1) * '*'
+    return prefix
+
+
 # Extract the operation from the packet
 def get_operation(packet):
     operation = (struct.unpack('!H', packet[OPER_OFFSET: OPER_OFFSET + OPER_LEN]))[0]
@@ -49,10 +62,35 @@ def get_operation_name(operation):
         return 'UNKNOWN OPERATION'
 
 
-# extract a MAC address at a give offset
-def extract_mac(packet, offset):
-    mac = struct.unpack("!BBBBBB", packet[offset:offset + HLEN])
-    return get_mac_hex_string(mac)
+# returns the destination in the string format
+def get_dest(packet, L):
+    t = struct.unpack("!I", packet[20:24])
+    dest = bin2str(t[0], L)
+    return dest
+
+
+# returns the source in the string format
+def get_src(packet, L):
+    t = struct.unpack("!I", packet[16:20])
+    src = bin2str(t[0], L)
+    return src
+
+
+# returns the rendezvousID for a node
+def get_rendezvous_id(dist, vid):
+# returns the k character long string containing hash of the input value
+    def hash_val(key, length):
+        return length * '0'
+    L = len(vid)
+    rdv_id = vid[:L - dist + 1]
+    return rdv_id + hash_val(rdv_id, dist - 1)
+
+
+
+#  returns the opcode type for a packet
+def get_op_code(packet):
+    [op_code] = struct.unpack("!H", packet[14:16])
+    return op_code
 
 
 # receives a packet from a tcp socket, waits till it receives NULL
@@ -64,19 +102,6 @@ def receive_packet(sock):
         data = sock.recv(64)
         print 'data received: ', data'''
     return data
-
-
-# get the prefix of kth bucket (k = dist) for node vid
-def get_prefix(vid, dist):
-    L = len(vid)
-    prefix = vid[:L - dist]
-    # flip the (dist-1)th bit from the right
-    if vid[L - dist] == '0':
-        prefix = prefix + '1'
-    else:
-        prefix = prefix + '0'
-    prefix = prefix + (dist - 1) * '*'
-    return prefix
 
 
 # check if the bucket is already present in the set or not:
@@ -91,19 +116,6 @@ def is_duplicate_bucket(bucket_list, bucket):
             is_duplicate = True
             return is_duplicate
     return is_duplicate
-
-
-# returns the rendezvousID for a node
-def get_rendezvous_id(dist, vid):
-    L = len(vid)
-    rdv_id = vid[:L - dist + 1]
-    rdv_id = rdv_id + hash_val(rdv_id, dist - 1)
-    return rdv_id
-
-
-# returns the k character long string containing hash of the input value
-def hash_val(key, length):
-    return length * '0'
 
 
 def pack_header(operation):
@@ -148,31 +160,30 @@ def create_RDV_PUBLISH(bucket, vid, dst):
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
-    dst_vid = struct.pack("!I", int(dst, 2)) # Desitnation VID (32 bits)
+    dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
     z = struct.pack("!I", bucket['next_hop']) # Destination Subtree-k
     return fwd + res + pack_header(RDV_PUBLISH) + src_vid + dst_vid + z
 
 
-# GW IS AN INT HERE! AND REST ARE BINARY STRINGS
-def create_RDV_REPLY(gw, bucket_distance, vid, dst):
-    fwd = struct.pack('!I', int(dst, 2))
-    res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
-    src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
-    dst_vid = struct.pack("!I", int(dst, 2)) # Desitnation VID (32 bits)
-    bucket_distance = struct.pack("!I", bucket_distance)
-    z = struct.pack("!I", gw) # Destination Subtree-k
-    return fwd + res + pack_header(RDV_REPLY) + src_vid + dst_vid + bucket_distance + z
-
-
-# create a RDV_QUERY Pakcet
-# bucket_dist IS AN INT HERE! AND REST ARE BINARY STRINGS
+# bucket_dist is an int; other arguments are binary strings
 def create_RDV_QUERY(bucket_distance, vid, dst):
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
-    dst_vid = struct.pack("!I", int(dst, 2)) # Desitnation VID (32 bits)
+    dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
     z = struct.pack("!I", bucket_distance)   # Destination Subtree-k
     return fwd + res + pack_header(RDV_QUERY) + src_vid + dst_vid + z
+
+
+# gw is an int; other arguments are binary strings
+def create_RDV_REPLY(gw, bucket_distance, vid, dst):
+    fwd = struct.pack('!I', int(dst, 2))
+    res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
+    src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
+    dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
+    bucket_distance = struct.pack("!I", bucket_distance)
+    z = struct.pack("!I", gw) # Destination Subtree-k
+    return fwd + res + pack_header(RDV_REPLY) + src_vid + dst_vid + bucket_distance + z
 
 
 def create_RDV_WITHDRAW(failed_node, vid, dst):
@@ -180,7 +191,7 @@ def create_RDV_WITHDRAW(failed_node, vid, dst):
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
-    dst_vid = struct.pack("!I", int(dst, 2)) # Desitnation VID (32 bits)
+    dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
     z = struct.pack("!I", failed_node) # Destination Subtree-k
     return fwd + res + pack_header(RDV_WITHDRAW) + src_vid + dst_vid + z
 
@@ -190,7 +201,7 @@ def create_GW_WITHDRAW(failed_gw, vid, dst):
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
-    dst_vid = struct.pack("!I", int(dst, 2)) # Desitnation VID (32 bits)
+    dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
     z = struct.pack("!I", int(failed_gw, 2)) # Destination Subtree-k
     return fwd + res + pack_header(GW_WITHDRAW) + src_vid + dst_vid + z
 
@@ -205,27 +216,6 @@ def flip_bit(dst, distance):
         prefix = prefix + '0'
     prefix = prefix + dst[L - distance + 1:]
     return prefix
-
-
-# returns the destination in the string format
-def get_dest(packet, L):
-    t = struct.unpack("!I", packet[20:24])
-    dest = bin2str(t[0], L)
-    return dest
-
-
-# returns the source in the string format
-def get_src(packet, L):
-    t = struct.unpack("!I", packet[16:20])
-    src = bin2str(t[0], L)
-    return src
-
-
-#  returns the opcode type for a packet
-def get_op_code(packet):
-    [op_code] = struct.unpack("!H", packet[14:16])
-
-    return op_code
 
 
 # prints the packet content
