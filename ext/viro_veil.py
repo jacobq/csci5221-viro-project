@@ -16,7 +16,6 @@ def get_mac_array(mac):
     mac_bytes = mac.split("-")
     if len(mac_bytes) != 6:
         print 'Error: MalFormed mac, expected 6 bytes, found : ', len(mac_bytes), 'bytes in the input array: ', mac
-    #t 'mac_bytes: ', mac_bytes
     for i in range(0, 6):
         if i < len(mac_bytes):
             mac_array[i] = int(mac_bytes[i], 16)
@@ -24,15 +23,15 @@ def get_mac_array(mac):
 
 
 # convert a byte array into the string format            
-def get_mac_hex_string(bytes):
+def get_mac_hex_string(mac_bytes):
     mac_string = ''
     for i in range(0, 6):
-        s = hex(bytes[i]).replace('0x', '')
+        s = hex(mac_bytes[i]).replace('0x', '')
         if len(s) < 2:
-            s = '0' + s
-        mac_string = mac_string + s
+            mac_string += '0'
+        mac_string += s
         if i < 5:
-            mac_string = mac_string + ':'
+            mac_string += ':'
     return mac_string
 
 
@@ -42,10 +41,10 @@ def get_prefix(vid, dist):
     prefix = vid[:L - dist]
     # flip the (dist-1)th bit from the right
     if vid[L - dist] == '0':
-        prefix = prefix + '1'
+        prefix += '1'
     else:
-        prefix = prefix + '0'
-    prefix = prefix + (dist - 1) * '*'
+        prefix += '0'
+    prefix += (dist - 1) * '*'
     return prefix
 
 
@@ -53,6 +52,7 @@ def get_prefix(vid, dist):
 def get_operation(packet):
     operation = (struct.unpack('!H', packet[OPER_OFFSET: OPER_OFFSET + OPER_LEN]))[0]
     return operation
+
 
 # convert operation number into a string
 def get_operation_name(operation):
@@ -78,7 +78,8 @@ def get_src(packet, L):
 
 # returns the rendezvousID for a node
 def get_rendezvous_id(dist, vid):
-# returns the k character long string containing hash of the input value
+    # returns the k character long string containing hash of the input value
+    # FIXME: Appears to return all zeros for everything right now
     def hash_val(key, length):
         return length * '0'
     L = len(vid)
@@ -86,8 +87,7 @@ def get_rendezvous_id(dist, vid):
     return rdv_id + hash_val(rdv_id, dist - 1)
 
 
-
-#  returns the opcode type for a packet
+#  returns the op code type for a packet
 def get_op_code(packet):
     [op_code] = struct.unpack("!H", packet[14:16])
     return op_code
@@ -187,7 +187,7 @@ def create_RDV_REPLY(gw, bucket_distance, vid, dst):
 
 
 def create_RDV_WITHDRAW(failed_node, vid, dst):
-    #print 'create_RDV_WITHDRAW', failed_node, vid, dst
+    # print 'create_RDV_WITHDRAW', failed_node, vid, dst
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
@@ -197,7 +197,7 @@ def create_RDV_WITHDRAW(failed_node, vid, dst):
 
 
 def create_GW_WITHDRAW(failed_gw, vid, dst):
-    #print 'create_GW Withdraw', vid, dst, failed_gw
+    # print 'create_GW Withdraw', vid, dst, failed_gw
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
