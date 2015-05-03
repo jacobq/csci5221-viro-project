@@ -111,6 +111,15 @@ class ViroModule(object):
             return packet
 
 
+    # FIXME: Not used?
+    def withdraw_gw(self, failed_gw, vid, dst):
+        print "Creating GW_WITHDRAW packet"
+        packet = create_GW_WITHDRAW(failed_gw, vid, dst)
+
+        print self.vid, ' - RDV Gateway WithDraw:', failed_gw, 'to dst:', dst
+        return packet
+
+
     def query(self, k):
         dst = get_rendezvous_id(k, self.vid)
         packet = create_RDV_QUERY(k, self.vid, dst)
@@ -215,6 +224,110 @@ class ViroModule(object):
         return reply_packet
 
 
+    def process_self_rvd_query(self, packet):
+        src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
+        payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
+
+        k = int(payload, 2)
+
+        # search in rdv store for the logically closest gateway to reach kth distance away neighbor
+        gw_str = self.find_a_gw(k, src_vid)
+
+        # if found then form the reply packet and send to src_vid
+        if gw_str == '':
+            # No gateway found
+            print 'Node :', self.vid, 'has no gateway for the rdv_query packet to reach bucket: ', k, ' for node: ', src_vid
+            return ''
+
+        if k in self.routing_table:
+            print 'Node :', self.vid, 'has already have an entry to reach neighbors at distance: ', k
+            return
+
+        next_hop, port = self.get_next_hop_rdv(gw_str)
+        if next_hop == '':
+            print 'No next_hop found for the gateway:', gw_str
+            print 'New routing information couldnt be added! '
+            return
+
+        # Destination Subtree-k
+        bucket_info = {
+            'prefix': get_prefix(self.vid, k),
+            'gateway': int(gw_str, 2),
+            'next_hop': int(next_hop, 2),
+            'port': port,
+            'default': True
+        }
+        self.routing_table[k] = []
+        self.routing_table[k].append(bucket_info)
+
+
+    def process_rdv_reply(self, packet):
+        # Fill my routing table using this new information
+        payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
+        [gw] = struct.unpack("!I", packet[28:32])
+        gw_str = bin2str(gw, self.L)
+        k = int(payload, 2)
+
+        if k in self.routing_table:
+            print 'Node :', self.vid, ' has already have an entry to reach neighbors at distance - ', k
+            return
+
+        next_hop, port = self.get_next_hop_rdv(gw_str)
+        if next_hop == '':
+            print 'ERROR: no next_hop found for the gateway:', gw_str
+            print "New routing information couldn't be added!"
+            return
+
+        next_hop_int = int(next_hop, 2)
+        bucket_info = {
+            'prefix': get_prefix(self.vid, k),
+            'gateway': gw,
+            'next_hop': next_hop_int,
+            'port': port,
+            'default': True
+        }
+
+        self.routing_table[k] = []
+        self.routing_table[k].append(bucket_info)
+
+
+    # FIXME: Not used?
+    def process_rdv_withdraw(self, packet):
+        src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
+        payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
+
+        print 'Node :', self.vid, 'has received process_rdv_withdraw from ', src_vid
+
+        gw = {}
+        print self.rdv_store
+        for level in self.rdv_store:
+            delete = []
+            for idx in range(0, len(self.rdv_store[level])):
+
+                entry = self.rdv_store[level][idx]
+
+                if (entry[0] == payload) or (entry[1] == payload):
+
+                    delete.append(idx)
+
+                    # Save the list of Removed Gateways and delete them from rdv Store
+                    if not level in gw:
+                        gw[level] = []
+
+                    gw[level].append(entry[0])  # saves the removed GWs
+
+            for index in delete:
+                del self.rdv_store[level][index]
+
+        if self.vid != src_vid:  # I am the rvd itself: no need to update routing table.
+            self.remove_failed_gw(packet)  # update the Routing Table
+
+        else:
+            print "I am the rdv point. My routing table is already updated."
+
+        return gw
+
+
     def find_a_gw(self, k, src_vid):
         gw = {}
         if k not in self.rdv_store:
@@ -269,36 +382,6 @@ class ViroModule(object):
         return result
 
 
-    def rdv_reply(self, packet):
-        # Fill my routing table using this new information
-        payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
-        [gw] = struct.unpack("!I", packet[28:32])
-        gw_str = bin2str(gw, self.L)
-        k = int(payload, 2)
-
-        if k in self.routing_table:
-            print 'Node :', self.vid, ' has already have an entry to reach neighbors at distance - ', k
-            return
-
-        next_hop, port = self.get_next_hop_rdv(gw_str)
-        if next_hop == '':
-            print 'ERROR: no next_hop found for the gateway:', gw_str
-            print "New routing information couldn't be added!"
-            return
-
-        next_hop_int = int(next_hop, 2)
-        bucket_info = {
-            'prefix': get_prefix(self.vid, k),
-            'gateway': gw,
-            'next_hop': next_hop_int,
-            'port': port,
-            'default': True
-        }
-
-        self.routing_table[k] = []
-        self.routing_table[k].append(bucket_info)
-
-
     def get_next_hop_rdv(self, dst_vid_str):
         next_hop = ''
         port = ''
@@ -310,82 +393,3 @@ class ViroModule(object):
 
         return (next_hop, port)
 
-
-    def self_rvd_query(self, packet):
-        src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
-        payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
-
-        k = int(payload, 2)
-
-        # search in rdv store for the logically closest gateway to reach kth distance away neighbor
-        gw_str = self.find_a_gw(k, src_vid)
-
-        # if found then form the reply packet and send to src_vid
-        if gw_str == '':
-            # No gateway found
-            print 'Node :', self.vid, 'has no gateway for the rdv_query packet to reach bucket: ', k, ' for node: ', src_vid
-            return ''
-
-        if k in self.routing_table:
-            print 'Node :', self.vid, 'has already have an entry to reach neighbors at distance: ', k
-            return
-
-        next_hop, port = self.get_next_hop_rdv(gw_str)
-        if next_hop == '':
-            print 'No next_hop found for the gateway:', gw_str
-            print 'New routing information couldnt be added! '
-            return
-
-        # Destination Subtree-k
-        bucket_info = {
-            'prefix': get_prefix(self.vid, k),
-            'gateway': int(gw_str, 2),
-            'next_hop': int(next_hop, 2),
-            'port': port,
-            'default': True
-        }
-        self.routing_table[k] = []
-        self.routing_table[k].append(bucket_info)
-
-    def rdv_withdraw(self, packet):
-        src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
-        payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
-
-        print 'Node :', self.vid, 'has received rdv_withdraw from ', src_vid
-
-        gw = {}
-        print self.rdv_store
-        for level in self.rdv_store:
-            delete = []
-            for idx in range(0, len(self.rdv_store[level])):
-
-                entry = self.rdv_store[level][idx]
-
-                if (entry[0] == payload) or (entry[1] == payload):
-
-                    delete.append(idx)
-
-                    # Save the list of Removed Gateways and delete them from rdv Store
-                    if not level in gw:
-                        gw[level] = []
-
-                    gw[level].append(entry[0])  # saves the removed GWs
-
-            for index in delete:
-                del self.rdv_store[level][index]
-
-        if self.vid != src_vid:  # I am the rvd itself: no need to update routing table.
-            self.remove_failed_gw(packet)  # update the Routing Table
-
-        else:
-            print "I am the rdv point. My routing table is already updated."
-
-        return gw
-
-
-    def rdv_gw_withdraw(self, failed_gw, vid, dst):
-        print "Creating GW_WITHDRAW packet"
-        packet = create_GW_WITHDRAW(failed_gw, vid, dst)
-
-        print self.vid, ' - RDV Gateway WithDraw:', failed_gw, 'to dst:', dst
-        return packet

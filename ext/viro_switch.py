@@ -91,7 +91,7 @@ class ViroSwitch(object):
                 print "RDV_QUERY message received"
                 if src_vid == self.vid:
                     print "I am the rdv point - processing the packet"
-                    self.viro.self_rvd_query(packet)
+                    self.viro.process_self_rvd_query(packet)
                     return
 
                 else:
@@ -114,7 +114,7 @@ class ViroSwitch(object):
             elif op_code == RDV_REPLY:
 
                 print "RDV_REPLY message received"
-                self.viro.rdv_reply(packet)
+                self.viro.process_rdv_reply(packet)
 
             elif op_code == VIRO_DATA_OP:
                 # The part where it handles VIRO data packet
