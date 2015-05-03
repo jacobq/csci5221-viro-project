@@ -95,7 +95,7 @@ class ViroController(object):
 
 def launch(transparent=False):
     """
-    Starts an VIRO switch.
+    Starts a VIRO controller/switch
     """
 
     core.registerNew(ViroController, str_to_bool(transparent))

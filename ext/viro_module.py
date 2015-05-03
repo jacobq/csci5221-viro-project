@@ -17,7 +17,8 @@ class ViroModule(object):
         self.rdv_request_tracker = {}
 
 
-    def update_routing_table(self, neighbor_vid, port):
+    def update_routing_table_based_on_neighbor(self, neighbor_vid, port):
+        print "update_routing_table_based_on_neighbor", neighbor_vid, port
         distance = delta(neighbor_vid, self.vid)
         # If we don't have any entries at this distance -> create a new bucket
         if distance not in self.routing_table:
@@ -26,7 +27,7 @@ class ViroModule(object):
         bucket_info = {
             'port': port,
             'prefix': get_prefix(self.vid, distance),
-            'gateway': int(self.vid, 2),    # FIXME: Why are we always the gateway??
+            'gateway': int(self.vid, 2),
             'next_hop': int(neighbor_vid, 2),
             'default': True
         }
@@ -36,11 +37,16 @@ class ViroModule(object):
         else:
             print "Ignoring duplicate routing entry", bucket_info
 
-        # Saving the information in the neighbors table.
         print "Updating the Neighbors list..."
         self.update_neighbors(neighbor_vid, distance)
-
         self.print_routing_table()
+
+
+    def update_neighbors(self, neighbor_vid, distance):
+        if neighbor_vid not in self.neighbors:
+            self.neighbors[neighbor_vid] = {}
+        self.neighbors[neighbor_vid][distance] = time.time()
+
 
     def print_routing_table(self):
         print '\n----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
@@ -87,13 +93,6 @@ class ViroModule(object):
             del self.routing_table[index]
 
         return
-
-
-    def update_neighbors(self, nvid, distance):
-        if nvid not in self.neighbors:
-            self.neighbors[nvid] = {}
-
-        self.neighbors[nvid][distance] = time.time()
 
 
     def find_entry(self, nvid, bucket=None):

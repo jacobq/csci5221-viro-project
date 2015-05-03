@@ -77,7 +77,7 @@ class ViroSwitch(object):
             neighbor_vid = packet_fields[1]
             neighbor_port = event.port
             print "Neighbor discovery reply message received from: ", neighbor_vid
-            self.viro.update_routing_table(neighbor_vid, neighbor_port)
+            self.viro.update_routing_table_based_on_neighbor(neighbor_vid, neighbor_port)
 
 
         else:
@@ -148,27 +148,17 @@ class ViroSwitch(object):
         for i in range(2, round + 1):
 
             # see if routing entry for this round is already available in the routing table.
-            if i in routing_table:
-                if len(routing_table[i]) > 0:
-
-                    # publish the information if it is already there
-                    for t in routing_table[i]:
-                        if t[1] == int(self.vid, 2):
-                            print "Sending rdv publish messages"
-                            packet, dst = self.viro.publish(t, i)
-                            self.route_viro_packet(packet)
-
-                else:
-                    print "Sending rdv query messages"
-
-                    packet, dst = self.viro.query(i)
-                    self.route_viro_packet(packet)
+            if i in routing_table and len(routing_table[i]) > 0:
+                # publish the information if it is already there
+                for entry in routing_table[i]:
+                    if entry['gateway'] == int(self.vid, 2):
+                        print "Sending rdv publish messages"
+                        packet, dst = self.viro.publish(entry, i)
+                        self.route_viro_packet(packet)
             else:
-
                 print "Sending rdv query messages"
                 packet, dst = self.viro.query(i)
                 self.route_viro_packet(packet)
-
 
     def start_round(self):
         L = len(self.vid)
