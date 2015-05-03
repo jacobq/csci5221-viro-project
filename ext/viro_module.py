@@ -1,7 +1,5 @@
-#!/usr/bin/python
-
 import socket, struct, sys, time, random
-# Local imports 
+
 from viro_veil import *  # for the constants
 
 

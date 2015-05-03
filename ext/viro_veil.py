@@ -1,7 +1,5 @@
 import socket, struct, sys, random
-# from collections  import namedtuple
 
-# Local imports 
 from viro_constant import *
 
 

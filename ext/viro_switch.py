@@ -1,20 +1,8 @@
-import time
-import sys
-
-from pox.core import core
 import pox.openflow.libopenflow_01 as of
-from pox.lib.util import dpid_to_str
-from pox.lib.util import str_to_bool
 from pox.lib.packet import *
 from pox.lib.addresses import *
-from pox.lib.util import *
-from pox.lib.recoco import Timer
 
-from viro_module import ViroModule
-from viro_constant import *
 from viro_veil import *
-
-
 
 class ViroSwitch(object):
     def __init__(self, connection, transparent, viro_module):
