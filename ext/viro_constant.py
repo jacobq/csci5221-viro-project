@@ -40,7 +40,7 @@ PORT_LEN = 0x04
 HEADER_LEN = 8
 
 # HARDWARE ADDRESS FOR THE VEIL MASTER
-VEIL_MASTER = "00:00:00:00:00:00"
+VEIL_MASTER_MAC = "00:00:00:00:00:00"
 
 # An arbitrary/fake MAC address that seems to be used in various places
 FAKE_MAC = '00:14:4f:e2:b3:70'

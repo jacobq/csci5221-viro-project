@@ -60,7 +60,7 @@ def createARPPacket(OPER, mac_src, ip_src, mac_dst, ip_dst):
 
 # creates the switchRegistrationReplyPacket
 def createSwitchRegistrationReplyPacket(switchvid):
-    srcvid_array = getMacArray(VEIL_MASTER)
+    srcvid_array = getMacArray(VEIL_MASTER_MAC)
     srcdst_array = getMacArray(switchvid)
     registrationreply = struct.pack("!HHBBHBBBBBBBBBBBB", HTYPE, PTYPE, HLEN, PLEN, SWITCH_REGISTER_REPLY,
                                     srcvid_array[0], srcvid_array[1], srcvid_array[2], srcvid_array[3], srcvid_array[4],
@@ -224,13 +224,13 @@ def receivePacket(sock):
 def register_switch(veil_master_ip, veil_master_port, serverport):
     # Packet structure 
     # HTYPE PTYPE HLEN PLEN OPER SRCVID(48bit) DSTVID(48bit) TCPPORT(16bit)
-    print 'Register switch at port: ', serverport, ' with VEIL_MASTER IP: ', veil_master_ip, ' VEIL_MASTER PORT: ', veil_master_port
+    print 'Register switch at port: ', serverport, ' with VEIL_MASTER_MAC IP: ', veil_master_ip, ' VEIL_MASTER_MAC PORT: ', veil_master_port
     registration_packet = struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, SWITCH_REGISTER_REQUEST)
     srcvid_array = getMacArray("ff:ff:ff:ff:ff:ff")
     registration_packet = registration_packet + struct.pack("!BBBBBB", srcvid_array[0], srcvid_array[1],
                                                             srcvid_array[2], srcvid_array[3], srcvid_array[4],
                                                             srcvid_array[5])
-    dstvid_array = getMacArray(VEIL_MASTER)
+    dstvid_array = getMacArray(VEIL_MASTER_MAC)
     registration_packet = registration_packet + struct.pack("!BBBBBB", dstvid_array[0], dstvid_array[1],
                                                             dstvid_array[2], dstvid_array[3], dstvid_array[4],
                                                             dstvid_array[5])

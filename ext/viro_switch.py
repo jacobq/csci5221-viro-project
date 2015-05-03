@@ -14,7 +14,7 @@ from viro_module import ViroModule
 from viro_constant import *
 from viro_veil import *
 
-round = 1
+
 
 class ViroSwitch(object):
     def __init__(self, connection, transparent, viro_module):
@@ -24,6 +24,7 @@ class ViroSwitch(object):
         self.viro = viro_module
         self.dpid = viro_module.dpid
         self.vid = viro_module.vid
+        self.round = 1
 
         # We want to hear PacketIn messages, so we listen
         connection.addListeners(self)
@@ -172,15 +173,15 @@ class ViroSwitch(object):
 
 
     def start_round(self):
-        global round
         L = len(self.vid)
 
-        print self.vid, 'Starting Round : ', round
-        self.run_round(round)
-        round = round + 1
+        print self.vid, 'Starting Round : ', self.round
+        self.run_round(self.round)
 
-        if round > L:
-            round = L
+        # Advance to next round but not beyond maximum (L)
+        self.round += 1
+        if self.round > L:
+            self.round = L
 
         self.print_routing_table()
 
@@ -199,14 +200,11 @@ class ViroSwitch(object):
             self.process_viro_packet(packet)
             return
 
-            # get nextHop and port
+        # get nextHop and port
         nextHop, port = self.viro.getNextHop(packet)
         if (nextHop != ''):
-
             hwrdst = FAKE_MAC
-
             msg = self.create_openflow_message(of.OFPP_IN_PORT, hwrdst, packet, int(port))
-
             self.connection.send(msg)
         else:
             print " Next hop is none "
