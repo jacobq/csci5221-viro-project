@@ -338,7 +338,7 @@ def create_RDV_PUBLISH(bucket, vid, dst):
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
     dst_vid = struct.pack("!I", int(dst, 2)) # Desitnation VID (32 bits)
-    z = struct.pack("!I", bucket[0]) # Destination Subtree-k
+    z = struct.pack("!I", bucket['next_hop']) # Destination Subtree-k
     return fwd + res + pack_header(RDV_PUBLISH) + src_vid + dst_vid + z
 
 

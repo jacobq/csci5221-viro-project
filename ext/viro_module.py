@@ -99,7 +99,7 @@ class ViroModule(object):
         dst = get_rendezvous_id(k, self.vid)
         packet = create_RDV_PUBLISH(bucket, self.vid, dst)
 
-        print 'Node :', self.vid, ' is publishing neighbor', bin2str(bucket[0], self.L), 'to rdv:', dst
+        print 'Node :', self.vid, 'is publishing neighbor', bin2str(bucket['next_hop'], self.L), 'to rdv:', dst
         return (packet, dst)
 
 
