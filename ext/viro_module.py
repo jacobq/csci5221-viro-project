@@ -18,35 +18,25 @@ class ViroModule(object):
 
 
     def update_routing_table(self, neighbor_vid, port):
-        # update my routing table
-        # self.vid: my own VID
-        # neighbor_vid: my neibhour VID
-        # port number information
-
-
-        # Routing table is a dictionary, it contains the values at each distances from 1 to L
-        # So key in the routing table is the bucket distance, value is the 3 tuple: tuple 1 = nexthop (neighbor_vid), tuple 2 = gateway (neighbor_vid), tuple 3 = prefix (string)
-
-        # Learn L, it is the length of any neighbor_vid
-        myprintid = "VEIL_SWITCH: [" + self.dpid + '|' + self.vid + ']'
-
         distance = delta(neighbor_vid, self.vid)
-
+        # If we don't have any entries at this distance -> create a new bucket
         if distance not in self.routing_table:
             self.routing_table[distance] = []
 
-        bucket_len = len(self.routing_table[distance])
-        # Changed logic
-        bucket_info = [int(neighbor_vid, 2), int(self.vid, 2), port, get_prefix(self.vid, distance)]
+        bucket_info = {
+            'port': port,
+            'prefix': get_prefix(self.vid, distance),
+            'gateway': int(self.vid,2),
+            'next_hop': int(neighbor_vid, 2),
+            'default': True
+        }
 
         if not is_duplicate_bucket(self.routing_table[distance], bucket_info):
             self.routing_table[distance].append(bucket_info)
 
-
         # Saving the information in the neighbors table.
         print "Updating the Neighbors list..."
         self.update_neighbors(neighbor_vid, distance)
-
 
         # Printing routing table
         self.print_routing_table()
@@ -55,16 +45,18 @@ class ViroModule(object):
         print '\n----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
         for bucket in range(1, self.L + 1):
             if bucket in self.routing_table:
-                for field in self.routing_table[bucket]:
+                for fields in self.routing_table[bucket]:
                     print 'Bucket::', bucket, \
-                          'Next hop:', bin2str(field[0], self.L), \
-                          'Port:', field[2], \
-                          'Gateway:', bin2str(field[1], self.L), \
-                          'Prefix:', field[3]
+                          'Port:', fields['port'], \
+                          'Prefix:', fields[['prefix']],\
+                          'Gateway:', bin2str(fields[['gateway']], self.L), \
+                          'Next hop:', bin2str(fields['next_hop'], self.L), \
+                          'Default:', fields['default']
             else:
-                print 'Bucket::', bucket, '  --- E M P T Y --- '
+                print 'Bucket::', bucket, '--- E M P T Y ---'
         print 'RDV STORE: ', self.rdv_store
-        print '\n --  --  --  --  -- --  --  --  --  -- --  --  --  --  -- \n'
+        print '\n--  --  --  --  --  --  --  --  --  --  --  --  --  --  --\n'
+
 
     def remove_failed_gw(self, packet, gw=None):
         if gw == None:
@@ -78,7 +70,7 @@ class ViroModule(object):
             delete[level] = []
             for idx in xrange(0, len(self.routing_table[level])):
                 entry = self.routing_table[level][idx]
-                if entry[1] == payload or entry[0] == payload:  # Remove if either gateway or nextHop failed
+                if entry['gateway'] == payload or entry['next_hop'] == payload:  # Remove if either gateway or nextHop failed
                     delete[level].append(idx)
 
         for index in delete:
@@ -111,7 +103,7 @@ class ViroModule(object):
 
             for i in range(0, n):
                 print self.routing_table[bucket][i]
-                next_hop = bin2str(self.routing_table[bucket][i][0], self.L)
+                next_hop = bin2str(self.routing_table[bucket][i]['next_hop'], self.L)
                 if next_hop == nvid:
                     index = i
                     break
@@ -121,8 +113,7 @@ class ViroModule(object):
             for level in self.routing_table:
                 index[level] = -1
                 for idx in xrange(0, len(self.routing_table[level])):
-
-                    next_hop = bin2str(self.routing_table[level][idx][0], self.L)
+                    next_hop = bin2str(self.routing_table[level][idx]['next_hop'], self.L)
                     if next_hop == nvid:
                         index[level] = idx
 
@@ -171,8 +162,8 @@ class ViroModule(object):
 
             if distance in self.routing_table:
                 if len(self.routing_table[distance]) > 0:
-                    next_hop = str(self.routing_table[distance][0][0])
-                    port = int(self.routing_table[distance][0][2])
+                    next_hop = str(self.routing_table[distance][0]['next_hop'])
+                    port = int(self.routing_table[distance][0]['port'])
                     break
 
             if (packet_type != RDV_PUBLISH) and (packet_type != RDV_QUERY):
@@ -279,9 +270,8 @@ class ViroModule(object):
         for level in index:
             if level != 1 or level != -1:
                 bucket = index[level]
-
                 # return gateway from routing_table with distance = bucket
-                gw = bin2str(self.routing_table[level][bucket][1], self.L)
+                gw = bin2str(self.routing_table[level][bucket]['gateway'], self.L)
                 gw_list.append(gw)
 
         return gw_list
@@ -317,8 +307,8 @@ class ViroModule(object):
 
         distance = delta(self.vid, dst_vid_str)
         if distance in self.routing_table:
-            next_hop = bin2str(self.routing_table[distance][0][0], self.L)
-            port = str(self.routing_table[distance][0][2])
+            next_hop = bin2str(self.routing_table[distance][0]['next_hop'], self.L)
+            port = str(self.routing_table[distance][0]['port'])
 
         return (next_hop, port)
 

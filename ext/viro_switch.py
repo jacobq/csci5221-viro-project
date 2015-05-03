@@ -72,13 +72,11 @@ class ViroSwitch(object):
             print "Neighbor discovery reply message sent"
 
 
-        elif op_code == DISC_ECHO_REPLY:  # Handles the echo neibghour reply message/packet
+        elif op_code == DISC_ECHO_REPLY:  # Handles the echo neighbor reply message/packet
             packet_fields = print_discover_packet(packet, L, length)  # gets the fields from the packet
             neighbor_vid = packet_fields[1]
             neighbor_port = event.port
-
             print "Neighbor discovery reply message received from: ", neighbor_vid
-
             self.viro.update_routing_table(neighbor_vid, neighbor_port)
 
 
