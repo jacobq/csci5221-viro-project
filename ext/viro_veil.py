@@ -26,10 +26,7 @@ def get_mac_array(mac):
 # convert a byte array into the string format            
 def get_mac_hex_string(bytes):
     mac_string = ''
-    #print "Converting Bytes: ", bytes
     for i in range(0, 6):
-        #print 'Bytes[i] = ', bytes[i]
-        #print 'hex = ', hex(bytes[i])
         s = hex(bytes[i]).replace('0x', '')
         if len(s) < 2:
             s = '0' + s
@@ -52,65 +49,6 @@ def get_operation_name(operation):
         return 'UNKNOWN OPERATION'
 
 
-# extract IP/VID mapping to store:
-def extract_ip_to_store(store_request_packet):
-    #print 'start offset: ',ECHO_SRC_OFFSET+2*HLEN
-    #print 'end offset: ', ECHO_SRC_OFFSET+2*HLEN +PLEN
-    #print 'String buffer: ', store_request_packet[ECHO_SRC_OFFSET+2*HLEN:ECHO_SRC_OFFSET+2*HLEN+PLEN]
-    ip_num = struct.unpack("!4s", store_request_packet[ECHO_SRC_OFFSET + 2 * HLEN:ECHO_SRC_OFFSET + 2 * HLEN + PLEN])
-    return socket.inet_ntoa(ip_num[0])
-
-
-def extract_vid_to_store(store_request_packet):
-    vid = struct.unpack("!BBBBBB",
-                        store_request_packet[ECHO_SRC_OFFSET + 2 * HLEN + PLEN:ECHO_SRC_OFFSET + 3 * HLEN + PLEN])
-    return get_mac_hex_string(vid)
-
-
-# extract source  vid from echopacket
-def extract_echo_src(echo_packet):
-    src_vid = struct.unpack("!BBBBBB", echo_packet[ECHO_SRC_OFFSET:ECHO_SRC_OFFSET + HLEN])
-    return get_mac_hex_string(src_vid)
-
-
-# extract source vid from echopacket
-def extract_echo_dst(echo_packet):
-    dstvid = struct.unpack("!BBBBBB", echo_packet[ECHO_SRC_OFFSET + HLEN:ECHO_SRC_OFFSET + 2 * HLEN])
-    return get_mac_hex_string(dstvid)
-
-
-# extract source vid from echopacket
-def extract_arp_src_mac(arppacket):
-    srcmac = struct.unpack("!BBBBBB", arppacket[ECHO_SRC_OFFSET:ECHO_SRC_OFFSET + HLEN])
-    return get_mac_hex_string(srcmac)
-
-
-# extract source vid from echopacket
-def extract_arp_dst_mac(arp_packet):
-    mac = struct.unpack("!BBBBBB", arp_packet[ECHO_SRC_OFFSET + HLEN + PLEN:ECHO_SRC_OFFSET + 2 * HLEN + PLEN])
-    return get_mac_hex_string(mac)
-
-
-# extract IP addresses
-def extract_arp_dst_ip(arp_packet):
-    ip = struct.unpack("!4s", arp_packet[ECHO_SRC_OFFSET + 2 * HLEN + PLEN:ECHO_SRC_OFFSET + 2 * HLEN + 2 * PLEN])
-    ip_address = socket.inet_ntoa(ip[0])
-    return ip_address
-
-
-def extract_arp_src_ip(arp_packet):
-    ip = struct.unpack("!4s", arp_packet[ECHO_SRC_OFFSET + HLEN:ECHO_SRC_OFFSET + HLEN + PLEN])
-    ip_address = socket.inet_ntoa(ip[0])
-    return ip_address
-
-
-# extract an IP address at a give offset
-def extract_ip(packet, offset):
-    ip = struct.unpack("!4s", packet[offset:offset + PLEN])
-    ip_address = socket.inet_ntoa(ip[0])
-    return ip_address
-
-
 # extract a MAC address at a give offset
 def extract_mac(packet, offset):
     mac = struct.unpack("!BBBBBB", packet[offset:offset + HLEN])
@@ -119,98 +57,13 @@ def extract_mac(packet, offset):
 
 # receives a packet from a tcp socket, waits till it receives NULL
 def receive_packet(sock):
-    #print 'Receiving packet at socket: ',sock
     data = sock.recv(128)
-    #print 'data received: ', data.encode("hex")
     '''packet = ''
     while data != '':
         packet = packet+data
         data = sock.recv(64)
         print 'data received: ', data'''
     return data
-
-
-# Method for switch registration
-def register_switch(veil_master_ip, veil_master_port, server_port):
-    # Packet structure
-    # HTYPE PTYPE HLEN PLEN OPER SRCVID(48bit) DSTVID(48bit) TCPPORT(16bit)
-    print 'Register switch at port: ', server_port,\
-          ' with VEIL_MASTER_MAC IP: ', veil_master_ip,\
-          ' VEIL_MASTER_MAC PORT: ', veil_master_port
-    registration_packet = pack_header(SWITCH_REGISTER_REQUEST) + pack_mac("ff:ff:ff:ff:ff:ff") +\
-                          pack_mac(VEIL_MASTER_MAC) + struct.pack("!H", server_port)
-    print 'Registration packet to be sent: ', registration_packet.encode("hex")
-    sock_master = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock_master.connect((veil_master_ip, veil_master_port))
-    sock_master.send(registration_packet)
-    registration_reply = receive_packet(sock_master)
-    print 'Registration packet reply to be received: ', registration_reply.encode("hex")
-    sock_master.close()
-    return extract_mac(registration_reply, ECHO_SRC_OFFSET + HLEN)
-
-
-# Gets a new ID for the switch. Basically generates a 32-bit random integer and checks if its in use or not
-def get_a_new_switch_id(current_ids):
-    MAXID = 2 ** 32 - 1
-    if len(current_ids) == MAXID:
-        print 'ERROR: NO more IDS left!'
-        return 0
-    #random.seed(1)
-    id = random.randint(1, MAXID)
-    while id in current_ids:
-        id = random.randint(1, MAXID)
-    return id
-
-
-# converts an ID (32-bit number) into a VID format
-def switch_id_to_vid(id):
-    vid = '00:00'
-    id_str = hex(id).replace('0x', '')
-    id_str = id_str.lower()
-    id_str = id_str.replace('l', '')
-
-    while len(id_str) < 8:
-        id_str = '0' + id_str
-    vid = id_str[0:2] + ':' + id_str[2:4] + ':' + id_str[4:6] + ':' + id_str[6:8] + ':' + vid
-    return vid
-
-
-# This function determines the ID for the access switch.
-def get_access_switch_id(ip, ids):
-    MAXINT = 2 ** 32 - 1
-    RADIUS = 2 ** 31
-    if len(ids) == 0:
-        return 0
-    hash_val = hash(ip) % (MAXINT + 1)
-    min_diff = MAXINT
-    access_switch_id = 0
-    for id in ids:
-        diff = abs(hash_val - id) % (RADIUS)
-        if diff < min_diff:
-            access_switch_id = id
-            min_diff = diff
-    return access_switch_id
-
-
-# Generates a unique host-vid
-def get_a_vid(ip, mac, my_switch_vid, my_host_ids):
-    MAX_HOSTID = 2 ** 16 - 1
-    host_id = ''
-    for i in range(1, MAX_HOSTID + 1):
-        if i not in my_host_ids:
-            break
-    if i == MAX_HOSTID:
-        print 'Warning: All the VIDs are currently in use!'
-        host_id = "ff:ff"
-    else:
-        my_host_ids.append(i)
-        id = hex(i).replace("0x", '')
-        while len(id) < 4:
-            id = '0' + id
-        host_id = id[0:2] + ':' + id[2:4]
-    bytes = my_switch_vid.split(":")
-    vid = bytes[0] + ":" + bytes[1] + ":" + bytes[2] + ":" + bytes[3] + ":" + host_id
-    return vid
 
 
 # get the prefix of kth bucket (k = dist) for node vid
@@ -266,48 +119,6 @@ def pack_bytes(data):
     for byte in data:
         result += struct.pack("!B", byte)
     return result
-
-
-# creates an arp packet, OPER is the operation, mac_src is the source mac address as string, ip_src is the source ip as string
-def create_arp_packet(op, mac_src, ip_src, mac_dst, ip_dst):
-    ip_src_num = socket.inet_aton(ip_src)
-    ip_dst_num = socket.inet_aton(ip_dst)
-    arp_packet = pack_header(op) +\
-                 pack_mac(mac_src) + struct.pack("!4s", ip_src_num) +\
-                 pack_mac(mac_dst) + struct.pack("!4s", ip_dst_num)
-    return arp_packet
-
-
-def create_switch_registration_reply_packet(switch_vid):
-    registration_reply = pack_header(SWITCH_REGISTER_REPLY) + pack_mac(VEIL_MASTER_MAC) + pack_mac(switch_vid)
-    return registration_reply
-
-
-# FIXME: What is the difference between create_switch_registration_reply_packet and create_switch_registration_reply_packet1?
-def create_switch_registration_reply_packet1(src_vid, dst_vid):
-    reply = pack_header(SWITCH_REGISTER_REPLY) + pack_mac(src_vid) + pack_mac(dst_vid)
-    return reply
-
-
-# create echo_request packet:
-def create_echo_request_packet(src_vid, dst_vid):
-    #Packet Structure: HTYPE PTYPE HLEN PLEN OPER SRC_VID(48) DST_VID(48)
-    echo_request = pack_header(ECHO_REQUEST) + pack_mac(src_vid) + pack_mac(dst_vid)
-    return echo_request
-
-
-# create echo_request packet:
-def create_echo_reply_packet(src_vid, dst_vid):
-    echo_reply = pack_header(ECHO_REPLY) + pack_mac(src_vid) + pack_mac(dst_vid)
-    return echo_reply
-
-
-def create_store_packet(ip_to_store, vid_to_store, src_vid, dst_vid):
-    # Packet Structure: HTYPE PTYPE HLEN PLEN OPER SRC_VID(48) DST_VID(48) IP_TO_STORE(32) VID_TO_STORE(48)
-    # print 'Source VID: ', src_vid, 'Destination VID: ', dst_vid, ' IP to store: ', ip_to_store, 'vid to store: ', vid_to_store
-    ip_num = socket.inet_aton(ip_to_store)
-    store_packet = pack_header(STORE_REQUEST) + pack_mac(src_vid) + pack_mac(dst_vid) + struct.pack("!4s", ip_num) + pack_mac(vid_to_store)
-    return store_packet
 
 
 def create_DISCOVER_ECHO_REQUEST(vid, dst_dpid):
@@ -394,15 +205,6 @@ def flip_bit(dst, distance):
         prefix = prefix + '0'
     prefix = prefix + dst[L - distance + 1:]
     return prefix
-
-
-# udpate the destination on the packet
-def update_destination(packet, dst):
-    header = packet[:16]
-    sender = packet[16:20]
-    payload = packet[24:]
-    new_dest = struct.pack("!I", int(dst, 2))
-    return (header + sender + new_dest + payload)
 
 
 # returns the destination in the string format

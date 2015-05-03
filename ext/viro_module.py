@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-from viro_veil import extract_arp_dst_mac
 import socket, struct, sys, time, random
 # Local imports 
 from viro_veil import *  # for the constants
