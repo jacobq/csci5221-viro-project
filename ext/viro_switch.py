@@ -22,8 +22,8 @@ class ViroSwitch(object):
         self.connection = connection
         self.transparent = transparent
         self.viro = viro_module
-        self.dpid = viro_module.mydpid
-        self.vid = viro_module.myvid
+        self.dpid = viro_module.dpid
+        self.vid = viro_module.vid
 
         # We want to hear PacketIn messages, so we listen
         connection.addListeners(self)
