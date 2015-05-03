@@ -319,7 +319,7 @@ class ViroModule(object):
         k = int(payload, 2)
 
         # search in rdv store for the logically closest gateway to reach kth distance away neighbor
-        gw_str = self.find_a_gw(self.rdv_store, k, src_vid)
+        gw_str = self.find_a_gw(k, src_vid)
 
         # if found then form the reply packet and send to src_vid
         if gw_str == '':
