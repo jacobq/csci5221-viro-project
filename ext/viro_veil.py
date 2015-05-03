@@ -228,18 +228,18 @@ def get_prefix(vid, dist):
 
 # check if the bucket is already present in the set or not:
 def is_duplicate_bucket(bucket_list, bucket):
-    is_duplicate = False
+    is_duplicate = True
     for i in range(0, len(bucket_list)):
-        if bucket_list[i][0] == bucket[0] and bucket_list[i][1] == bucket[1] and bucket_list[i][2] == bucket[2]:
-            is_duplicate = True
-            return is_duplicate
+        for j in bucket: # Assume bucket and bucket_list[i] are arrays of the same length but allow that length to vary
+            if bucket_list[i][j] != bucket[j]:
+                is_duplicate = False
+                return is_duplicate
     return is_duplicate
 
 
 # returns the rendezvousID for a node
 def get_rendezvous_id(dist, vid):
     L = len(vid)
-
     rdv_id = vid[:L - dist + 1]
     rdv_id = rdv_id + hash_val(rdv_id, dist - 1)
     return rdv_id
@@ -253,8 +253,10 @@ def hash_val(key, length):
 def pack_header(operation):
     return struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, operation)
 
+
 def pack_mac(data):
     return pack_bytes(get_mac_array(data))
+
 
 def pack_bytes(data):
     result = ''
