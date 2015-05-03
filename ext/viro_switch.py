@@ -22,7 +22,7 @@ class ViroSwitch(object):
         self.connection = connection
         self.transparent = transparent
         self.viro = viro_module
-        self.pid = viro_module.mydpid
+        self.dpid = viro_module.mydpid
         self.vid = viro_module.myvid
 
         # We want to hear PacketIn messages, so we listen
@@ -53,7 +53,7 @@ class ViroSwitch(object):
 
     def process_viro_packet(self, packet, match=None, event=None):
         L = len(self.vid)
-        length = getdpidLength(self.pid)
+        length = getdpidLength(self.dpid)
 
         op_code = getopcode(packet)
 
@@ -64,7 +64,7 @@ class ViroSwitch(object):
             neighbor_vid = packet_fields[1]
 
             print "Neighbor discovery request message received from: ", neighbor_vid
-            r = createDISCOVER_ECHO_REPLY(self.vid, self.pid)
+            r = createDISCOVER_ECHO_REPLY(self.vid, self.dpid)
             mac = FAKE_MAC
             msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, r, event.port)
             self.connection.send(msg)
@@ -201,7 +201,7 @@ class ViroSwitch(object):
 
             # get nextHop and port
         nextHop, port = self.viro.getNextHop(packet)
-        if ( nextHop != ''):
+        if (nextHop != ''):
 
             hwrdst = FAKE_MAC
 
@@ -214,7 +214,7 @@ class ViroSwitch(object):
 
     def print_routing_table(self):
         L = len(self.vid)
-        print '\n\t----> Routing Table at :', self.vid, '|', self.pid, ' <----'
+        print '\n\t----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
         for bucket in range(1, L + 1):
             if bucket in self.viro.routingTable:
                 for field in self.viro.routingTable[bucket]:

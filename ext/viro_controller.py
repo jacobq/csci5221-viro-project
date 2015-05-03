@@ -31,10 +31,10 @@ from pox.lib.addresses import *
 from pox.lib.util import *
 from pox.lib.recoco import Timer
 
-from viro_module import ViroModule
 from viro_constant import *
-from viro_veil import *
+from viro_module import ViroModule
 from viro_switch import ViroSwitch
+from viro_veil import *
 
 log = core.getLogger()
 
@@ -50,9 +50,9 @@ class ViroController(object):
     def _handle_ConnectionUp(self, event):
         log.debug("Connection %s" % (event.connection))
 
-        self.pid = dpidToStr(event.connection.dpid)   # gets the switch dpid identifier
-        self.vid = self.get_vid_from_pid(self.pid)
-        self.viro = ViroModule(self.pid, self.vid)
+        self.dpid = dpidToStr(event.connection.dpid)   # gets the switch dpid identifier
+        self.vid = self.get_vid_from_pid(self.dpid)
+        self.viro = ViroModule(self.dpid, self.vid)
         self.viro_switch = ViroSwitch(event.connection, self.transparent, self.viro)
 
         print "Starting Neighbor Discovery ...."
@@ -64,7 +64,7 @@ class ViroController(object):
         Timer(FAILURE_TIME, self.discover_failures, recurring=True)
 
     def get_vid_from_pid(self, pid):
-        # To convert a pid string (assumed to be formatted like a MAC address: xx-xx-xx-xx-xx-xx)
+        # To convert a dpid string (assumed to be formatted like a MAC address: xx-xx-xx-xx-xx-xx)
         # starting at "00-00-00-00-00-01" to a vid string (of '1' and '0' characters)
         # starting at "000" we do the following:
         #   1. Remove "-" characters to make the string numeric
@@ -76,7 +76,7 @@ class ViroController(object):
 
     def discover_neighbors(self, event): # TODO: Check caller signatures
         try:
-            r = createDISCOVER_ECHO_REQ(self.vid, self.pid)
+            r = createDISCOVER_ECHO_REQ(self.vid, self.dpid)
             mac = FAKE_MAC
             msg = self.viro_switch.create_openflow_message(of.OFPP_FLOOD, mac, r, None)
             event.connection.send(msg)

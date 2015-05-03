@@ -8,8 +8,8 @@ from viro_veil import *  # for the constants
 
 class ViroModule(object):
     def __init__(self, mydpid, myvid):
-        self.mydpid = mydpid
-        self.myvid = myvid
+        self.dpid = mydpid
+        self.vid = myvid
         self.L = len(myvid)
         self.routingTable = {}
         self.rdvStore = {}
@@ -17,28 +17,28 @@ class ViroModule(object):
         self.rdvRequestTracker = {}
 
 
-    def updateRoutingTable(self, vid, port):
+    def updateRoutingTable(self, neighbor_vid, port):
 
         # update my routing table
-        # myvid: my own VID
-        # vid: my neibhour VID
+        # self.vid: my own VID
+        # neighbor_vid: my neibhour VID
         # port number information
 
 
         # Routing table is a dictionary, it contains the values at each distances from 1 to L
-        # So key in the routing table is the bucket distance, value is the 3 tuple: tuple 1 = nexthop (vid), tuple 2 = gateway (vid), tuple 3 = prefix (string)
+        # So key in the routing table is the bucket distance, value is the 3 tuple: tuple 1 = nexthop (neighbor_vid), tuple 2 = gateway (neighbor_vid), tuple 3 = prefix (string)
 
-        # Learn L, it is the length of any vid
-        myprintid = "VEIL_SWITCH: [" + self.mydpid + '|' + self.myvid + ']'
+        # Learn L, it is the length of any neighbor_vid
+        myprintid = "VEIL_SWITCH: [" + self.dpid + '|' + self.vid + ']'
 
-        dist = delta(vid, self.myvid)
+        dist = delta(neighbor_vid, self.vid)
 
         if dist not in self.routingTable:
             self.routingTable[dist] = []
 
         bucket_len = len(self.routingTable[dist])
         # Changed logic
-        bucket_info = [int(vid, 2), int(self.myvid, 2), port, getPrefix(self.myvid, dist)]
+        bucket_info = [int(neighbor_vid, 2), int(self.vid, 2), port, getPrefix(self.vid, dist)]
 
         if not isDuplicateBucket(self.routingTable[dist], bucket_info):
             self.routingTable[dist].append(bucket_info)
@@ -46,11 +46,11 @@ class ViroModule(object):
 
         # Saving the information in the neighbors table.
         print "Updating the Neighbors list..."
-        self.updateNeighbors(vid, dist)
+        self.updateNeighbors(neighbor_vid, dist)
 
 
         # Printing routing table
-        print '\n\t----> Routing Table at :', self.myvid, '|', self.mydpid, ' <----'
+        print '\n\t----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
 
         for i in range(1, self.L + 1):
             if i in self.routingTable:
@@ -131,30 +131,30 @@ class ViroModule(object):
 
     def publish(self, bucket, k):
 
-        dst = getRendezvousID(k, self.myvid)
-        packet = createRDV_PUBLISH(bucket, self.myvid, dst)
+        dst = getRendezvousID(k, self.vid)
+        packet = createRDV_PUBLISH(bucket, self.vid, dst)
 
-        print 'Node :', self.myvid, ' is publishing neighbor', bin2str(bucket[0], self.L), 'to rdv:', dst
+        print 'Node :', self.vid, ' is publishing neighbor', bin2str(bucket[0], self.L), 'to rdv:', dst
         return (packet, dst)
 
 
 
     def withdraw(self, failedNode, RDV_level):
 
-        dst = getRendezvousID(RDV_level, self.myvid)
+        dst = getRendezvousID(RDV_level, self.vid)
         if dst != failedNode:
-            packet = createRDV_WITHDRAW(int(failedNode, 2), self.myvid, '00')
-            print 'Node : ', self.myvid, 'is withdrawing neighbor', failedNode, 'to rdv:', dst
+            packet = createRDV_WITHDRAW(int(failedNode, 2), self.vid, '00')
+            print 'Node : ', self.vid, 'is withdrawing neighbor', failedNode, 'to rdv:', dst
 
             return packet
 
 
     def query(self, k):
 
-        dst = getRendezvousID(k, self.myvid)
-        packet = createRDV_QUERY(k, self.myvid, dst)
+        dst = getRendezvousID(k, self.vid)
+        packet = createRDV_QUERY(k, self.vid, dst)
 
-        print 'Node :', self.myvid, ' is quering to reach Bucket :', k, 'to rdv:', dst
+        print 'Node :', self.vid, ' is quering to reach Bucket :', k, 'to rdv:', dst
         return (packet, dst)
 
 
@@ -168,7 +168,7 @@ class ViroModule(object):
 
         while nexthop == '':
 
-            dist = delta(self.myvid, dst)
+            dist = delta(self.vid, dst)
             if dist == 0:
                 break
 
@@ -187,7 +187,7 @@ class ViroModule(object):
             dst = flipBit(dst, dist)
 
         if nexthop == '':
-            print 'No route to destination', 'MyVID: ', self.myvid, 'DEST: ', dst
+            print 'No route to destination', 'MyVID: ', self.vid, 'DEST: ', dst
             return ('', '')
 
         return (nexthop, port)
@@ -218,7 +218,7 @@ class ViroModule(object):
 
         print "RDV_PUBLISH message received from: ", svid
 
-        dist = delta(self.myvid, payload)
+        dist = delta(self.vid, payload)
         if dist not in self.rdvStore:
             self.rdvStore[dist] = []
 
@@ -242,11 +242,11 @@ class ViroModule(object):
         # if found then form the reply packet and send to svid
         if gw == '':
             # No gateway found
-            print 'Node : ', self.myvid, 'has no gateway for the rdv_query packet to reach bucket: ', k, ' for node: ', svid
+            print 'Node : ', self.vid, 'has no gateway for the rdv_query packet to reach bucket: ', k, ' for node: ', svid
             return ''
 
         # create a RDV_REPLY packet and send it
-        replypacket = createRDV_REPLY(int(gw, 2), k, self.myvid, svid)
+        replypacket = createRDV_REPLY(int(gw, 2), k, self.vid, svid)
 
 
 
@@ -305,7 +305,7 @@ class ViroModule(object):
         k = int(payload, 2)
 
         if k in self.routingTable:
-            print 'Node :', self.myvid, ' has already have an entry to reach neighbors at distance - ', k
+            print 'Node :', self.vid, ' has already have an entry to reach neighbors at distance - ', k
             return
 
         nexthop, port = self.getNextHopRDV(gw_str)
@@ -315,7 +315,7 @@ class ViroModule(object):
             return
 
         nh = int(nexthop, 2)
-        bucket_info = [nh, gw, port, getPrefix(self.myvid, k)]
+        bucket_info = [nh, gw, port, getPrefix(self.vid, k)]
 
         self.routingTable[k] = []
         self.routingTable[k].append(bucket_info)
@@ -325,7 +325,7 @@ class ViroModule(object):
         nexthop = ''
         port = ''
 
-        dist = delta(self.myvid, destvid_str)
+        dist = delta(self.vid, destvid_str)
         if dist in self.routingTable:
             nexthop = bin2str(self.routingTable[dist][0][0], self.L)
             port = str(self.routingTable[dist][0][2])
@@ -346,11 +346,11 @@ class ViroModule(object):
         # if found then form the reply packet and send to svid
         if gw_str == '':
             # No gateway found
-            print 'Node :', self.myvid, 'has no gateway for the rdv_query packet to reach bucket: ', k, ' for node: ', svid
+            print 'Node :', self.vid, 'has no gateway for the rdv_query packet to reach bucket: ', k, ' for node: ', svid
             return ''
 
         if k in self.routingTable:
-            print 'Node :', self.myvid, 'has already have an entry to reach neighbors at distance: ', k
+            print 'Node :', self.vid, 'has already have an entry to reach neighbors at distance: ', k
             return
 
         nexthop, port = self.getNextHopRDV(gw_str)
@@ -363,7 +363,7 @@ class ViroModule(object):
 
         # Destination Subtree-k
         gw = int(gw_str, 2)
-        bucket_info = [nh, gw, port, getPrefix(self.myvid, k)]
+        bucket_info = [nh, gw, port, getPrefix(self.vid, k)]
 
         self.routingTable[k] = []
         self.routingTable[k].append(bucket_info)
@@ -373,7 +373,7 @@ class ViroModule(object):
         svid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
         payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
 
-        print 'Node :', self.myvid, 'has received rdv_withdraw from ', svid
+        print 'Node :', self.vid, 'has received rdv_withdraw from ', svid
 
         gw = {}
         print self.rdvStore
@@ -396,7 +396,7 @@ class ViroModule(object):
             for index in delete:
                 del self.rdvStore[level][index]
 
-        if self.myvid != svid:  # I am the rvd itself: no need to update routing table.
+        if self.vid != svid:  # I am the rvd itself: no need to update routing table.
             self.removeFailedGW(packet)  # update the Routing Table
 
         else:
@@ -410,5 +410,5 @@ class ViroModule(object):
         print "Creating GW_WITHDRAW packet"
         packet = createGW_WITHDRAW(failedGW, myvid, dst)
 
-        print self.myvid, ' - RDV Gateway WithDraw:', failedGW, 'to dst:', dst
+        print self.vid, ' - RDV Gateway WithDraw:', failedGW, 'to dst:', dst
         return packet

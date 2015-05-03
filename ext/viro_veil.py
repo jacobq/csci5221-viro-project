@@ -309,11 +309,11 @@ def getAVid(ip, mac, mySwitch_vid, myHost_ids):
     return vid
 
 
-# get the prefix of kth bucket for a node myvid
+# get the prefix of kth bucket (k = dist) for node vid
 def getPrefix(vid, dist):
     L = len(vid)
     prefix = vid[:L - dist]
-    # flip the dist-1 th bit from the right
+    # flip the (dist-1)th bit from the right
     if vid[L - dist] == '0':
         prefix = prefix + '1'
     else:
