@@ -44,110 +44,12 @@ def get_operation(packet):
     operation = (struct.unpack('!H', packet[OPER_OFFSET: OPER_OFFSET + OPER_LEN]))[0]
     return operation
 
-
-# creates an arp packet, OPER is the operation, mac_src is the source mac address as string, ip_src is the source ip as string
-def create_arp_packet(OPER, mac_src, ip_src, mac_dst, ip_dst):
-    ip_src_num = socket.inet_aton(ip_src)
-    ip_dst_num = socket.inet_aton(ip_dst)
-    mac_src_array = get_mac_array(mac_src)
-    mac_dst_array = get_mac_array(mac_dst)
-    arp_packet = struct.pack("!HHBBHBBBBBB4sBBBBBB4s", HTYPE, PTYPE, HLEN, PLEN, OPER,
-                            mac_src_array[0], mac_src_array[1], mac_src_array[2],
-                            mac_src_array[3], mac_src_array[4], mac_src_array[5],
-                            ip_src_num,
-                            mac_dst_array[0], mac_dst_array[1], mac_dst_array[2],
-                            mac_dst_array[3], mac_dst_array[4], mac_dst_array[5],
-                            ip_dst_num)
-    return arp_packet
-
-
-# creates the switchRegistrationReplyPacket
-def create_switch_registration_reply_packet(switch_vid):
-    src_vid_array = get_mac_array(VEIL_MASTER_MAC)
-    src_dst_array = get_mac_array(switch_vid)
-    registration_reply = struct.pack("!HHBBHBBBBBBBBBBBB", HTYPE, PTYPE, HLEN, PLEN, SWITCH_REGISTER_REPLY,
-                                    src_vid_array[0], src_vid_array[1], src_vid_array[2],
-                                    src_vid_array[3], src_vid_array[4], src_vid_array[5],
-                                    src_dst_array[0], src_dst_array[1], src_dst_array[2],
-                                    src_dst_array[3], src_dst_array[4], src_dst_array[5])
-    return registration_reply
-
-
 # convert operation number into a string
 def get_operation_name(operation):
     if operation in OPERATION_NAMES:
         return OPERATION_NAMES[operation]
     else:
         return 'UNKNOWN OPERATION'
-
-
-# create echo_request packet:
-def create_echo_request_packet(src_vid, dst_vid):
-    #Packet Structure
-    #HTYPE PTYPE HLEN PLEN OPER SRC_VID(48) DST_VID(48)
-    srcvid_array = get_mac_array(src_vid)
-    srcdst_array = get_mac_array(dst_vid)
-    echorequest = struct.pack("!HHBBHBBBBBBBBBBBB", HTYPE, PTYPE, HLEN, PLEN, ECHO_REQUEST, srcvid_array[0],
-                              srcvid_array[1], srcvid_array[2], srcvid_array[3], srcvid_array[4], srcvid_array[5],
-                              srcdst_array[0], srcdst_array[1], srcdst_array[2], srcdst_array[3], srcdst_array[4],
-                              srcdst_array[5])
-    return echorequest
-
-
-# create echo_request packet:
-def create_echo_reply_packet(src_vid, dst_vid):
-    src_vid_array = get_mac_array(src_vid)
-    src_dst_array = get_mac_array(dst_vid)
-    echo_reply = struct.pack("!HHBBHBBBBBBBBBBBB", HTYPE, PTYPE, HLEN, PLEN, ECHO_REPLY,
-                            src_vid_array[0], src_vid_array[1], src_vid_array[2],
-                            src_vid_array[3], src_vid_array[4], src_vid_array[5],
-                            src_dst_array[0], src_dst_array[1], src_dst_array[2],
-                            src_dst_array[3], src_dst_array[4], src_dst_array[5])
-    return echo_reply
-
-
-# create registration reply packet:
-def create_switch_registration_reply_packet1(src_vid, dst_vid):
-    src_vid_array = get_mac_array(src_vid)
-    src_dst_array = get_mac_array(dst_vid)
-    reply = struct.pack("!HHBBHBBBBBBBBBBBB", HTYPE, PTYPE, HLEN, PLEN, SWITCH_REGISTER_REPLY,
-                        src_vid_array[0], src_vid_array[1], src_vid_array[2],
-                        src_vid_array[3], src_vid_array[4], src_vid_array[5],
-                        src_dst_array[0], src_dst_array[1], src_dst_array[2],
-                        src_dst_array[3], src_dst_array[4], src_dst_array[5])
-    return reply
-
-
-# create a store_request packet:
-def create_store_packet(ip_to_store, vid_to_store, src_vid, dst_vid):
-    # Packet Structure
-    # HTYPE PTYPE HLEN PLEN OPER SRC_VID(48) DST_VID(48) IP_TO_STORE(32) VID_TO_STORE(48)
-    #print 'Source VID: ', src_vid, 'Destination VID: ', dst_vid, ' IP to store: ', ip_to_store, 'vid to store: ', vid_to_store
-    ip_num = socket.inet_aton(ip_to_store)
-    vid_array = get_mac_array(vid_to_store)
-    src_vid_array = get_mac_array(src_vid)
-    dst_vid_array = get_mac_array(dst_vid)
-    # First prepare header
-    store_packet = struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, STORE_REQUEST)
-    #print 'StorePACKET = ',store_packet.encode('hex')
-    # Put the source vid now
-    store_packet = store_packet + struct.pack("!BBBBBB",
-        src_vid_array[0], src_vid_array[1], src_vid_array[2],
-        src_vid_array[3], src_vid_array[4], src_vid_array[5])
-    #print 'StorePACKET = ',store_packet.encode('hex')
-    # Put the destination vid now
-    store_packet = store_packet + struct.pack("!BBBBBB",
-        dst_vid_array[0], dst_vid_array[1], dst_vid_array[2],
-        dst_vid_array[3], dst_vid_array[4], dst_vid_array[5])
-    #print 'StorePACKET = ',store_packet.encode('hex')
-    # Put the IP on the packet now
-    store_packet = store_packet + struct.pack("!4s", ip_num)
-    #print 'StorePACKET = ',store_packet.encode('hex')
-    # Put the vid on the packet now
-    store_packet = store_packet + struct.pack("!BBBBBB", vid_array[0], vid_array[1], vid_array[2], vid_array[3],
-                                              vid_array[4], vid_array[5])
-    #print 'StorePACKET = ',store_packet.encode('hex')
-    return store_packet
 
 
 # extract IP/VID mapping to store:
@@ -230,21 +132,13 @@ def receive_packet(sock):
 
 # Method for switch registration
 def register_switch(veil_master_ip, veil_master_port, server_port):
-    # Packet structure 
+    # Packet structure
     # HTYPE PTYPE HLEN PLEN OPER SRCVID(48bit) DSTVID(48bit) TCPPORT(16bit)
     print 'Register switch at port: ', server_port,\
-        ' with VEIL_MASTER_MAC IP: ', veil_master_ip,\
-        ' VEIL_MASTER_MAC PORT: ', veil_master_port
-    registration_packet = struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, SWITCH_REGISTER_REQUEST)
-    src_vid_array = get_mac_array("ff:ff:ff:ff:ff:ff")
-    registration_packet = registration_packet + struct.pack("!BBBBBB",
-        src_vid_array[0], src_vid_array[1], src_vid_array[2],
-        src_vid_array[3], src_vid_array[4], src_vid_array[5])
-    dst_vid_array = get_mac_array(VEIL_MASTER_MAC)
-    registration_packet = registration_packet + struct.pack("!BBBBBB",
-        dst_vid_array[0], dst_vid_array[1], dst_vid_array[2],
-        dst_vid_array[3], dst_vid_array[4], dst_vid_array[5])
-    registration_packet = registration_packet + struct.pack("!H", server_port)
+          ' with VEIL_MASTER_MAC IP: ', veil_master_ip,\
+          ' VEIL_MASTER_MAC PORT: ', veil_master_port
+    registration_packet = pack_header(SWITCH_REGISTER_REQUEST) + pack_mac("ff:ff:ff:ff:ff:ff") +\
+                          pack_mac(VEIL_MASTER_MAC) + struct.pack("!H", server_port)
     print 'Registration packet to be sent: ', registration_packet.encode("hex")
     sock_master = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock_master.connect((veil_master_ip, veil_master_port))
@@ -356,145 +250,136 @@ def hash_val(key, length):
     return length * '0'
 
 
-# create discover_echo_req
-def create_DISCOVER_ECHO_REQ(vid, dpid):
-    # First prepare header !BBBH
-    packet = struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, DISC_ECHO_REQ)
-    # Sender VID (32 bits)
-    src_vid = struct.pack("!I", int(vid, 2))
-    # convert a string containing dpid into a byte array
-    dst_vid_array = get_mac_array(dpid)
-    src_dpid = struct.pack("!BBBBBB",
-        dst_vid_array[0], dst_vid_array[1], dst_vid_array[2],
-        dst_vid_array[3], dst_vid_array[4], dst_vid_array[5])
-    #sport = struct.pack("!I",port)
+def pack_header(operation):
+    return struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, operation)
 
-    fwd = struct.pack('!I', int('0', 2))
+def pack_mac(data):
+    return pack_bytes(get_mac_array(data))
+
+def pack_bytes(data):
+    result = ''
+    for byte in data:
+        result += struct.pack("!B", byte)
+    return result
+
+
+# creates an arp packet, OPER is the operation, mac_src is the source mac address as string, ip_src is the source ip as string
+def create_arp_packet(op, mac_src, ip_src, mac_dst, ip_dst):
+    ip_src_num = socket.inet_aton(ip_src)
+    ip_dst_num = socket.inet_aton(ip_dst)
+    arp_packet = pack_header(op) +\
+                 pack_mac(mac_src) + struct.pack("!4s", ip_src_num) +\
+                 pack_mac(mac_dst) + struct.pack("!4s", ip_dst_num)
+    return arp_packet
+
+
+def create_switch_registration_reply_packet(switch_vid):
+    registration_reply = pack_header(SWITCH_REGISTER_REPLY) + pack_mac(VEIL_MASTER_MAC) + pack_mac(switch_vid)
+    return registration_reply
+
+
+# FIXME: What is the difference between create_switch_registration_reply_packet and create_switch_registration_reply_packet1?
+def create_switch_registration_reply_packet1(src_vid, dst_vid):
+    reply = pack_header(SWITCH_REGISTER_REPLY) + pack_mac(src_vid) + pack_mac(dst_vid)
+    return reply
+
+
+# create echo_request packet:
+def create_echo_request_packet(src_vid, dst_vid):
+    #Packet Structure: HTYPE PTYPE HLEN PLEN OPER SRC_VID(48) DST_VID(48)
+    echo_request = pack_header(ECHO_REQUEST) + pack_mac(src_vid) + pack_mac(dst_vid)
+    return echo_request
+
+
+# create echo_request packet:
+def create_echo_reply_packet(src_vid, dst_vid):
+    echo_reply = pack_header(ECHO_REPLY) + pack_mac(src_vid) + pack_mac(dst_vid)
+    return echo_reply
+
+
+def create_store_packet(ip_to_store, vid_to_store, src_vid, dst_vid):
+    # Packet Structure: HTYPE PTYPE HLEN PLEN OPER SRC_VID(48) DST_VID(48) IP_TO_STORE(32) VID_TO_STORE(48)
+    # print 'Source VID: ', src_vid, 'Destination VID: ', dst_vid, ' IP to store: ', ip_to_store, 'vid to store: ', vid_to_store
+    ip_num = socket.inet_aton(ip_to_store)
+    store_packet = pack_header(STORE_REQUEST) + pack_mac(src_vid) + pack_mac(dst_vid) + struct.pack("!4s", ip_num) + pack_mac(vid_to_store)
+    return store_packet
+
+
+def create_DISCOVER_ECHO_REQ(vid, dst_dpid):
+    fwd = struct.pack('!I', 0)
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
-
-    return fwd + res + packet + src_vid + src_dpid
+    src_vid = struct.pack("!I", int(vid, 2))    # Sender VID (32 bits)
+    return fwd + res + pack_header(DISC_ECHO_REQ) + src_vid + pack_mac(dst_dpid)
 
 
 def create_DISCOVER_ECHO_REPLY(vid, dpid):
-    # First prepare header
-    packet = struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, DISC_ECHO_REPLY)
-    # Sender VID (32 bits)
-    src_vid = struct.pack("!I", int(vid, 2))
-    # convert a string containing dpid into a byte array
-    dst_vid_array = get_mac_array(dpid)
-    src_dpid = struct.pack("!BBBBBB",
-        dst_vid_array[0], dst_vid_array[1], dst_vid_array[2],
-        dst_vid_array[3], dst_vid_array[4], dst_vid_array[5])
-    #sport = struct.pack("!I",port)
-
     fwd = struct.pack('!I', int('0', 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
+    src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
+    return fwd + res + pack_header(DISC_ECHO_REPLY) + src_vid + pack_mac(dpid)
 
-    return fwd + res + packet + src_vid + src_dpid
 
-
-# create VIRO data packet
 def create_VIRO_DATA(src_vid, dst_vid, fwd_vid, ttl, payload):
-    packet = struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, VIRO_DATA_OP)
+    fwd = struct.pack('!I', int(dst_vid, 2))
+    res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(src_vid, 2))
     dst_vid = struct.pack("!I", int(dst_vid, 2))
     p = struct.pack("!I", payload)
-    fwd = struct.pack('!I', int(dst_vid, 2))
-    res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
-
-    return fwd + res + packet + src_vid + dst_vid + p
+    return fwd + res + pack_header(VIRO_DATA_OP) + src_vid + dst_vid + p
 
 
-# creates a packet of type RDV_PUBLISH
 def create_RDV_PUBLISH(bucket, vid, dst):
-    # First prepare header
-    packet = struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, RDV_PUBLISH)
-    # Sender VID (32 bits)
-    src_vid = struct.pack("!I", int(vid, 2))
-    # Desitnation VID (32 bits)
-    dst_vid = struct.pack("!I", int(dst, 2))
-    # Destination Subtree-k
-    z = struct.pack("!I", bucket[0])
-
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
+    src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
+    dst_vid = struct.pack("!I", int(dst, 2)) # Desitnation VID (32 bits)
+    z = struct.pack("!I", bucket[0]) # Destination Subtree-k
+    return fwd + res + pack_header(RDV_PUBLISH) + src_vid + dst_vid + z
 
-    return (fwd + res + packet + src_vid + dst_vid + z)
 
-
-# create a RDV_REPLY Pakcet
 # GW IS AN INT HERE! AND REST ARE BINARY STRINGS
-def create_RDV_REPLY(gw, bucket_dist, vid, dst):
-    # First prepare header
-    packet = struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, RDV_REPLY)
-    # Sender VID (32 bits)
-    src_vid = struct.pack("!I", int(vid, 2))
-    # Desitnation VID (32 bits)
-    dst_vid = struct.pack("!I", int(dst, 2))
-
-    #bucket distance
-    bucket_dist = struct.pack("!I", bucket_dist)
-
-    # Destination Subtree-k
-    z = struct.pack("!I", gw)
-
+def create_RDV_REPLY(gw, bucket_distance, vid, dst):
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
-
-    return (fwd + res + packet + src_vid + dst_vid + bucket_dist + z)
+    src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
+    dst_vid = struct.pack("!I", int(dst, 2)) # Desitnation VID (32 bits)
+    bucket_distance = struct.pack("!I", bucket_distance)
+    z = struct.pack("!I", gw) # Destination Subtree-k
+    return fwd + res + pack_header(RDV_REPLY) + src_vid + dst_vid + bucket_distance + z
 
 
 # create a RDV_QUERY Pakcet
 # bucket_dist IS AN INT HERE! AND REST ARE BINARY STRINGS
-def create_RDV_QUERY(bucket_dist, vid, dst):
-    # First prepare header
-    packet = struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, RDV_QUERY)
-    # Sender VID (32 bits)
-    src_vid = struct.pack("!I", int(vid, 2))
-    # Desitnation VID (32 bits)
-    dst_vid = struct.pack("!I", int(dst, 2))
-    # Destination Subtree-k
-    z = struct.pack("!I", bucket_dist)
-
+def create_RDV_QUERY(bucket_distance, vid, dst):
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
-
-    return (fwd + res + packet + src_vid + dst_vid + z)
+    src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
+    dst_vid = struct.pack("!I", int(dst, 2)) # Desitnation VID (32 bits)
+    z = struct.pack("!I", bucket_distance)   # Destination Subtree-k
+    return fwd + res + pack_header(RDV_QUERY) + src_vid + dst_vid + z
 
 
 def create_RDV_WITHDRAW(failed_node, vid, dst):
-    print 'create_RDV', vid, dst, failed_node
-    # First prepare header
-    packet = struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, RDV_WITHDRAW)
-    # Sender VID (32 bits)
-    src_vid = struct.pack("!I", int(vid, 2))
-    # Desitnation VID (32 bits)
-    dst_vid = struct.pack("!I", int(dst, 2))
-    # Destination Subtree-k
-    z = struct.pack("!I", failed_node)
-
+    #print 'create_RDV_WITHDRAW', failed_node, vid, dst
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
-    return (fwd + res + packet + src_vid + dst_vid + z)
+    src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
+    dst_vid = struct.pack("!I", int(dst, 2)) # Desitnation VID (32 bits)
+    z = struct.pack("!I", failed_node) # Destination Subtree-k
+    return fwd + res + pack_header(RDV_WITHDRAW) + src_vid + dst_vid + z
 
 
 def create_GW_WITHDRAW(failed_gw, vid, dst):
     #print 'create_GW Withdraw', vid, dst, failed_gw
-    # First prepare header
-    packet = struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, GW_WITHDRAW)
-    # Sender VID (32 bits)
-    src_vid = struct.pack("!I", int(vid, 2))
-    # Desitnation VID (32 bits)
-    dst_vid = struct.pack("!I", int(dst, 2))
-    # Destination Subtree-k
-    z = struct.pack("!I", int(failed_gw, 2))
-
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
-    return (fwd + res + packet + src_vid + dst_vid + z)
+    src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
+    dst_vid = struct.pack("!I", int(dst, 2)) # Desitnation VID (32 bits)
+    z = struct.pack("!I", int(failed_gw, 2)) # Destination Subtree-k
+    return fwd + res + pack_header(GW_WITHDRAW) + src_vid + dst_vid + z
 
 
-# it flips the kth bit (from the right) in the dst and returns it.
+# flips the kth bit (from the right) in the dst and returns it.
 def flip_bit(dst, distance):
     L = len(dst)
     prefix = dst[:L - distance]
