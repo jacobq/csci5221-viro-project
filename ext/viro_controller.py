@@ -37,9 +37,6 @@ from viro_veil import *
 from viro_switch import ViroSwitch
 
 log = core.getLogger()
-myViro = ""
-mydpid = 0
-myvid = 0
 
 class ViroController(object):
     """
@@ -49,24 +46,21 @@ class ViroController(object):
     def __init__(self, transparent):
         core.openflow.addListeners(self)
         self.transparent = transparent
-        self.myviroSwitch = ''
 
     def _handle_ConnectionUp(self, event):
-        global mydpid, myViro, myvid
         log.debug("Connection %s" % (event.connection))
 
-        mydpid = dpidToStr(event.connection.dpid)   # gets the switch dpid identifier
-        myvid = self.get_vid_from_pid(mydpid)
-        myViro = ViroModule(mydpid, myvid)
-
-        self.myviroSwitch = ViroSwitch(event.connection, self.transparent, myViro)
+        self.pid = dpidToStr(event.connection.dpid)   # gets the switch dpid identifier
+        self.vid = self.get_vid_from_pid(self.pid)
+        self.viro = ViroModule(self.pid, self.vid)
+        self.viro_switch = ViroSwitch(event.connection, self.transparent, self.viro)
 
         print "Starting Neighbor Discovery ...."
         # Call neighbor discovery function after every DISCOVER_TIME seconds
-        Timer(DISCOVER_TIME, self.discover_neighbors, args=[mydpid, myvid, event], recurring=True)
+        Timer(DISCOVER_TIME, self.discover_neighbors, args=[event], recurring=True)
         # Populate routing table after every UPDATE_RT_TIME seconds
-        Timer(UPDATE_RT_TIME, self.myviroSwitch.start_round, recurring=True)
-        # Look for failures in the neigbours switches
+        Timer(UPDATE_RT_TIME, self.viro_switch.start_round, recurring=True)
+        # Look for failures in the neighbor switches
         Timer(FAILURE_TIME, self.discover_failures, recurring=True)
 
     def get_vid_from_pid(self, pid):
@@ -80,12 +74,11 @@ class ViroController(object):
         #   5. Zero-pad the result the 3 bits to match the behavior of the original function
         return format(int(pid.replace('-', ''), 16) - 1, 'b').zfill(3)
 
-    def discover_neighbors(self, mydip, myvid, event):
+    def discover_neighbors(self, event): # TODO: Check caller signatures
         try:
-            dpid = mydip
-            r = createDISCOVER_ECHO_REQ(myvid, dpid)
+            r = createDISCOVER_ECHO_REQ(self.vid, self.pid)
             mac = FAKE_MAC
-            msg = self.myviroSwitch.create_openflow_message(of.OFPP_FLOOD, mac, r, None)
+            msg = self.viro_switch.create_openflow_message(of.OFPP_FLOOD, mac, r, None)
             event.connection.send(msg)
             print "Sending neighbor discovery packets"
 

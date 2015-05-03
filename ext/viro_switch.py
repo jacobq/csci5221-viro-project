@@ -55,33 +55,30 @@ class ViroSwitch(object):
         L = len(self.vid)
         length = getdpidLength(self.pid)
 
-        opcode = getopcode(packet)
+        op_code = getopcode(packet)
 
-        if opcode == DISC_ECHO_REQ:  # Handles the echo neibghour discover message/packet
+        if op_code == DISC_ECHO_REQ:  # Handles the echo neibghour discover message/packet
             # sends a disc_echo_reply packet
 
             packet_fields = printDiscoverPacket(packet, L, length)  # gets the fields from the packet
-            nvid = packet_fields[1]  # direct neigbour VID
+            neighbor_vid = packet_fields[1]
 
-            print "Neighbor discovery request message received from: ", nvid
+            print "Neighbor discovery request message received from: ", neighbor_vid
             r = createDISCOVER_ECHO_REPLY(self.vid, self.pid)
             mac = FAKE_MAC
-
             msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, r, event.port)
-
             self.connection.send(msg)
             print "Neighbor discovery reply message sent"
 
 
-        elif opcode == DISC_ECHO_REPLY:  # Handles the echo neibghour reply message/packet
-            # process the packet
-
+        elif op_code == DISC_ECHO_REPLY:  # Handles the echo neibghour reply message/packet
             packet_fields = printDiscoverPacket(packet, L, length)  # gets the fields from the packet
-            nvid = packet_fields[1]  # direct neigbour VID
-            nport = event.port  # direct neigbour port
+            neighbor_vid = packet_fields[1]
+            neighbor_port = event.port
 
-            print "Neighbor discovery reply message received from: ", nvid
-            self.viro.updateRoutingTable(nvid, nport)
+            print "Neighbor discovery reply message received from: ", neighbor_vid
+
+            self.viro.updateRoutingTable(neighbor_vid, neighbor_port)
 
 
         else:
@@ -94,7 +91,7 @@ class ViroSwitch(object):
                 self.route_viro_packet(packet)
                 return
 
-            if opcode == RDV_QUERY:
+            if op_code == RDV_QUERY:
                 print "RDV_QUERY message received"
                 if src == self.vid:
                     print "I am the rdv point - processing the packet"
@@ -114,16 +111,16 @@ class ViroSwitch(object):
                     print "RDV_REPLY message sent"
 
 
-            elif opcode == RDV_PUBLISH:
+            elif op_code == RDV_PUBLISH:
                 self.viro.rdvPublish(packet)
 
 
-            elif opcode == RDV_REPLY:
+            elif op_code == RDV_REPLY:
 
                 print "RDV_REPLY message received"
                 self.viro.rdvReply(packet)
 
-            elif opcode == VIRO_DATA_OP:
+            elif op_code == VIRO_DATA_OP:
                 # The part where it handles VIRO data packet
                 print "Received a VIRO Data Packet"
 
