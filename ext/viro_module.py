@@ -196,17 +196,18 @@ class ViroModule(object):
         port = ''
 
         while next_hop == '':
-
             distance = delta(self.vid, dst_vid)
             if distance == 0:
                 break
 
-            if distance in self.routing_table:
-                if len(self.routing_table[distance]) > 0:
-                    # TODO: Will need to modify so that this doesn't just take the first entry every time
-                    next_hop = str(self.routing_table[distance][0]['next_hop'])
-                    port = int(self.routing_table[distance][0]['port'])
-                    break
+            if distance in self.routing_table and len(self.routing_table[distance]) > 0:
+                for entry in self.routing_table[distance]:
+                    if entry['default']:
+                        next_hop = str(entry['next_hop'])
+                        port = int(entry['port'])
+                        break
+            if next_hop != '':
+                break
 
             if (packet_type != RDV_PUBLISH) and (packet_type != RDV_QUERY):
                 break

@@ -52,8 +52,9 @@ class ViroSwitch(object):
         if op_code == DISCOVERY_ECHO_REQUEST:
             packet_fields = decode_discovery_packet(packet, L, dpid_length)
             neighbor_vid = packet_fields['sender_vid']
-
             print "Neighbor discovery request message received from: ", neighbor_vid
+
+            # Reply
             r = create_DISCOVER_ECHO_REPLY(self.vid, self.dpid)
             mac = FAKE_MAC
             msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, r, event.port)
@@ -65,7 +66,9 @@ class ViroSwitch(object):
             packet_fields = decode_discovery_packet(packet, L, dpid_length)
             neighbor_vid = packet_fields['sender_vid']
             neighbor_port = event.port
-            print "Neighbor discovery reply message received from: ", neighbor_vid
+            print "Neighbor discovery reply message received from vid: ", neighbor_vid, "port:", neighbor_port
+
+            # Update routing table with this (possibly new) neighbors
             self.viro.update_routing_table_based_on_neighbor(neighbor_vid, neighbor_port)
 
         else:
@@ -147,26 +150,24 @@ class ViroSwitch(object):
         L = len(self.vid)
 
         # start from round 2 since connectivity in round 1 is already learnt using the physical neighbors
-        for i in range(2, round + 1):
+        for k in range(2, round + 1):
             # see if routing entry for this round is already available in the routing table.
-            if i in routing_table and len(routing_table[i]) > 0:
+            if k in routing_table and len(routing_table[k]) > 0:
                 # publish the information if it is already there
-                for entry in routing_table[i]:
+                for entry in routing_table[k]:
                     if entry['gateway'] == int(self.vid, 2):
-                        print "Sending rdv publish messages"
-                        packet, dst = self.viro.publish(entry, i)
+                        print "Sending RDV_PUBLISH for k =", k
+                        packet, dst = self.viro.publish(entry, k)
                         self.route_viro_packet(packet)
             else:
-                print "Sending rdv query messages"
-                packet, dst = self.viro.query(i)
+                print "Sending RDV_QUERY for k =", k
+                packet, dst = self.viro.query(k)
                 self.route_viro_packet(packet)
 
 
     def route_viro_packet(self, packet):
         # Type of packet: rvds Query or Publish
         # k - bucket level
-
-
         L = len(self.vid)
         dst = get_dest(packet, L)
 
@@ -183,4 +184,4 @@ class ViroSwitch(object):
             msg = self.create_openflow_message(of.OFPP_IN_PORT, dst_dpid, packet, int(port))
             self.connection.send(msg)
         else:
-            print " Next hop is none "
+            print "Next hop is none"

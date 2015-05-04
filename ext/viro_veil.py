@@ -76,8 +76,7 @@ def get_src(packet, L):
 
 # returns the rendezvousID for a node
 def get_rendezvous_id(dist, vid):
-    # returns the k character long string containing hash of the input value
-    # FIXME: Appears to return all zeros for everything right now
+    # Note: hash_val appears to return all zeros for everything right now -- OK?
     def hash_val(key, length):
         return length * '0'
     L = len(vid)
