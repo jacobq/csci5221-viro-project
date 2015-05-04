@@ -200,18 +200,47 @@ def flip_bit(dst, distance):
     return prefix
 
 
-def get_pretty_hex(packed_data, nybbles_per_word, words_per_line):
-    # Breaks sequences/arrays into nice groups
-    # http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python
-    def chunks(l, n):
-        n = max(1, n)
-        return [l[i:i + n] for i in range(0, len(l), n)]
+def decode_discovery_packet(packet, L, dpid_length):
+    [op_code] = struct.unpack("!H", packet[14:16])
+    [svid] = struct.unpack("!I", packet[16:20])
+    dpid_bytes = (dpid_length/8)
+    if len(packet) >= (20+dpid_bytes):
+        dst_dpid_str = ""
+        for dst_dpid_byte in struct.unpack("!" + "B"*dpid_bytes, packet[20:(20+dpid_bytes)]):
+            dst_dpid_str += hex(dst_dpid_byte).replace("0x", "").zfill(2)
+        dst_dpid = int(dst_dpid_str, 16)
+    else:
+        print "ERROR: decode_discovery_packet did not get dst_dpid"
+        dst_dpid = 0
 
-    return '\n'.join(chunks(
-            ' '.join(chunks(packed_data.encode("hex"), nybbles_per_word)),
-            (nybbles_per_word+1)*words_per_line))
+    return {
+        'op_code': op_code,
+        'sender_vid': bin2str(svid, L),
+        'dst_dpid': dst_dpid
+    }
 
 
+# converts the binary representation of an integer to binary string.
+def bin2str(id, L):
+    bin_str = bin(id).replace('0b', '')
+    bin_str = (L - len(bin_str)) * '0' + bin_str
+    return bin_str
+
+
+# logical distance 
+def delta(vid1, vid2):
+    L = len(vid1)
+    distance = L
+    for i in range(0, L):
+        if vid1[i] == vid2[i]:
+            distance -= 1
+        else:
+            return distance
+    print "Logical distance between ", vid1, "and", vid2, "is", distance
+    return distance
+
+
+# Debug functions
 def print_packet(packet, L, verbose=False):
     # print "print_packet found", len(packet), "bytes:"
     if verbose:
@@ -255,47 +284,16 @@ def print_packet(packet, L, verbose=False):
 
     print "" # add new line to separate this output in the log
 
-def decode_discovery_packet(packet, L, dpid_length):
-    # DEBUG
-    print "decode_discovery_packet"
-    print_packet(packet, L, True)
 
-    [op_code] = struct.unpack("!H", packet[14:16])  # 3:5
-    [svid] = struct.unpack("!I", packet[16:20])
-    #[dpid1] = struct.unpack("!I", packet[12:18])
-    #[port] = struct.unpack("!I",packet[18:22]) #15:19
-    #[payload] = struct.unpack("!I", packet[16:20])
+def get_pretty_hex(packed_data, nybbles_per_word, words_per_line):
+    # Breaks sequences/arrays into nice groups
+    # http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python
+    def chunks(l, n):
+        n = max(1, n)
+        return [l[i:i + n] for i in range(0, len(l), n)]
 
-    if op_code not in OPERATION_NAMES:
-        print 'Unknown packet op_code: ', hex(op_code)
-        print 'Content in hexadecimal: ', packet.encode("hex")
-        # Need to return none if no match
-        #return 
-    #print 'Type: ',OPERATION_NAMES[op_code], 'VID: ', bin2str(svid,L), 'dpid: ', bin2str(dpid,dpid_length), 'port : ' , [port][0]
-    #print 'Type: ',OPERATION_NAMES[op_code], 'VID: ', bin2str(svid,L), 'port : ' , [port][0]
-    return {
-        'op_code': op_code,
-        'sender_vid': bin2str(svid, L)
-    }
+    return '\n'.join(chunks(
+            ' '.join(chunks(packed_data.encode("hex"), nybbles_per_word)),
+            (nybbles_per_word+1)*words_per_line))
 
 
-# converts the binary representation of an integer to binary string.
-def bin2str(id, L):
-    bin_str = bin2str_unpadded(id)
-    bin_str = (L - len(bin_str)) * '0' + bin_str
-    return bin_str
-
-def bin2str_unpadded(data):
-    return bin(data).replace('0b', '')
-
-# logical distance 
-def delta(vid1, vid2):
-    L = len(vid1)
-    distance = L
-    for i in range(0, L):
-        if vid1[i] == vid2[i]:
-            distance -= 1
-        else:
-            return distance
-    print "Logical distance between ", vid1, "and", vid2, "is", distance
-    return distance
