@@ -148,15 +148,17 @@ class ViroSwitch(object):
 
         # start from round 2 since connectivity in round 1 is already learnt using the physical neighbors
         for k in range(2, round + 1):
-            # see if routing entry for this round is already available in the routing table.
-            if k in routing_table and len(routing_table[k]) > 0:
-                # publish the information if it is already there
-                for entry in routing_table[k]:
-                    if entry['gateway'] == int(self.vid, 2):
-                        print "Sending RDV_PUBLISH for k =", k
-                        packet, dst = self.viro.publish(entry, k)
-                        self.route_viro_packet(packet)
-            else:
+            if not k in routing_table:
+                routing_table[k] = []
+            # publish ourself as a gateway to our physical neighbors
+            for entry in routing_table[k]:
+                if entry['gateway'] == int(self.vid, 2):
+                    print "Sending RDV_PUBLISH for k =", k
+                    packet, dst = self.viro.publish(entry, k)
+                    self.route_viro_packet(packet)
+
+            # If we don't yet have the maximum number of gateways / entries in our routing table, query for more
+            if len(routing_table[k]) < MAX_GW_PER_LEVEL:
                 print "Sending RDV_QUERY for k =", k
                 packet, dst = self.viro.query(k)
                 self.route_viro_packet(packet)
