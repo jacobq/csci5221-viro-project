@@ -15,7 +15,7 @@ class ViroModule(object):
 
 
     def update_routing_table_based_on_neighbor(self, neighbor_vid, port):
-        print "update_routing_table_based_on_neighbor", neighbor_vid, port
+        print "update_routing_table_based_on_neighbor: neighbor_vid =", neighbor_vid, "port =", port
         bucket = delta(neighbor_vid, self.vid)
         # If we don't have any entries at this bucket -> create a new bucket
         if bucket not in self.routing_table:
@@ -122,12 +122,11 @@ class ViroModule(object):
                           'Default:', entry['default']
             else:
                 print 'Bucket::', distance, '--- E M P T Y ---'
-        print 'RDV STORE: ', self.rdv_store
-        print '\n--  --  --  --  --  --  --  --  --  --  --  --  --  --  --\n'
+        print 'RDV STORE: ', self.rdv_store, "\n"
 
 
     def remove_failed_gw(self, packet, gw=None):
-        if gw == None:
+        if gw is None:
             payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
             payload = int(payload, 2)
         else:

@@ -126,7 +126,7 @@ class ViroSwitch(object):
 
 
     def start_round(self):
-        print self.vid, 'Starting Round : ', self.round
+        print "vid", self.vid, 'starting round: ', self.round
 
         self.run_round(self.round)
 
