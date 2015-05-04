@@ -31,8 +31,6 @@ class ViroModule(object):
         if not is_duplicate_bucket(self.routing_table[bucket], bucket_info):
             self.routing_table[bucket].append(bucket_info)
             self.recalculate_default_gw_for_bucket(bucket)
-        else:
-            print "Ignoring duplicate routing entry", bucket_info
 
         print "Updating the Neighbors list..."
         self.update_neighbors(neighbor_vid, bucket)
@@ -302,8 +300,11 @@ class ViroModule(object):
             return ''
 
         for gw_str in gw_str_list:
-            if k in self.routing_table:
-                print 'Node:', self.vid, 'has already have an entry to reach neighbors at distance: ', k
+            if not k in self.routing_table:
+                self.routing_table[k] = []
+            if len(self.routing_table[k]) >= MAX_GW_PER_LEVEL:
+                print 'Node:', self.vid,\
+                    'has already has the maximum number of routing entries for reaching neighbors at distance: ', k
                 return
 
             next_hop, port = self.get_next_hop_rdv(gw_str)
@@ -319,7 +320,6 @@ class ViroModule(object):
                 'next_hop': int(next_hop, 2),
                 'port': port
             }
-            self.routing_table[k] = []
             self.routing_table[k].append(bucket_info)
             self.recalculate_default_gw_for_bucket(k)
 

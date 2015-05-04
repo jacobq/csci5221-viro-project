@@ -52,21 +52,21 @@ class ViroSwitch(object):
         if op_code == DISCOVERY_ECHO_REQUEST:
             packet_fields = decode_discovery_packet(packet, L, dpid_length)
             neighbor_vid = packet_fields['sender_vid']
-            print "Neighbor discovery request message received from: ", neighbor_vid
+            # print "Neighbor discovery request message received from: ", neighbor_vid
 
             # Reply
             r = create_DISCOVER_ECHO_REPLY(self.vid, self.dpid)
             mac = FAKE_MAC
             msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, r, event.port)
             self.connection.send(msg)
-            print "Neighbor discovery reply message sent"
+            # print "Neighbor discovery reply message sent"
 
 
         elif op_code == DISCOVERY_ECHO_REPLY:
             packet_fields = decode_discovery_packet(packet, L, dpid_length)
             neighbor_vid = packet_fields['sender_vid']
             neighbor_port = event.port
-            print "Neighbor discovery reply message received from vid: ", neighbor_vid, "port:", neighbor_port
+            # print "Neighbor discovery reply message received from vid: ", neighbor_vid, "port:", neighbor_port
 
             # Update routing table with this (possibly new) neighbors
             self.viro.update_routing_table_based_on_neighbor(neighbor_vid, neighbor_port)

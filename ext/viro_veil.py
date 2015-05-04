@@ -238,7 +238,7 @@ def delta(vid1, vid2):
             distance -= 1
         else:
             return distance
-    print "Logical distance between ", vid1, "and", vid2, "is", distance
+    # print "Logical distance between ", vid1, "and", vid2, "is", distance
     return distance
 
 
