@@ -200,40 +200,35 @@ def flip_bit(dst, distance):
     return prefix
 
 
-def print_as_hex_bytes(packed_data):
+def str_to_pretty_hex_bytes(packed_data, nybbles_per_word, words_per_line):
     # Breaks sequences/arrays into nice groups
     # http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python
     def chunks(l, n):
         n = max(1, n)
         return [l[i:i + n] for i in range(0, len(l), n)]
 
-    unpacked = ""
-    for c in packed_data:
-        [b] = struct.unpack('!B', c)
-        unpacked += hex(b).replace('0x', '').zfill(2)
-    return '\n'.join(chunks(' '.join(chunks(unpacked, 2)), 8+3+1)) # 8 digits + 3 spaces + 1 trailing space
+    return '\n'.join(chunks(' '.join(chunks(packed_data.encode("hex"), nybbles_per_word)),
+                            (nybbles_per_word+1)*words_per_line))
 
-# prints the packet content
+
 def print_packet(packet, L):
-    print "Raw packet (hex):\n", print_as_hex_bytes(packet)
+    print "print_packet found", len(packet), "bytes:\n", str_to_pretty_hex_bytes(packet, 2, 4)
 
-    if (len(packet) < 28):
-        print "ERROR: print_packet expected a packet with >= 28 bytes but got", len(packet)
-        return
+    if (len(packet) >= 16):
+        [op_code] = struct.unpack("!H", packet[14:16])
+        print 'Type: ', get_operation_name(op_code)
 
-    [op_code] = struct.unpack("!H", packet[14:16])  # 6:8
-    [src_vid] = struct.unpack("!I", packet[16:20])
-    [dst_vid] = struct.unpack("!I", packet[20:24])
-    [payload] = struct.unpack("!I", packet[24:28])
+    if (len(packet) >= 20):
+        [src_vid] = struct.unpack("!I", packet[16:20])
+        print  'Source: ', bin2str(src_vid, L)
 
-    if op_code not in OPERATION_NAMES:
-        print 'Unknown packet op_code: ', hex(op_code)
-        print 'Content in hexadecimal: ', packet.encode("hex")
-        return
-    print 'Type: ', OPERATION_NAMES[op_code],\
-        'Source: ', bin2str(src_vid, L),\
-        'Destination: ', bin2str(dst_vid, L),\
-        'Payload: ', bin2str(payload, L)
+    if (len(packet) >= 24):
+        [dst_vid] = struct.unpack("!I", packet[20:24])
+        print  'Destination: ', bin2str(dst_vid, L)
+
+    if (len(packet) >= 28):
+        [payload] = struct.unpack("!I", packet[24:28])
+        print 'Payload: ', bin2str(payload, L)
 
 
 def decode_discovery_packet(packet, L, dpid_length):
