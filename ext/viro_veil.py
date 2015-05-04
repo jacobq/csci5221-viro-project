@@ -200,41 +200,65 @@ def flip_bit(dst, distance):
     return prefix
 
 
-def str_to_pretty_hex_bytes(packed_data, nybbles_per_word, words_per_line):
+def get_pretty_hex(packed_data, nybbles_per_word, words_per_line):
     # Breaks sequences/arrays into nice groups
     # http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python
     def chunks(l, n):
         n = max(1, n)
         return [l[i:i + n] for i in range(0, len(l), n)]
 
-    return '\n'.join(chunks(' '.join(chunks(packed_data.encode("hex"), nybbles_per_word)),
-                            (nybbles_per_word+1)*words_per_line))
+    return '\n'.join(chunks(
+            ' '.join(chunks(packed_data.encode("hex"), nybbles_per_word)),
+            (nybbles_per_word+1)*words_per_line))
 
 
-def print_packet(packet, L):
-    print "print_packet found", len(packet), "bytes:\n", str_to_pretty_hex_bytes(packet, 2, 4)
+def print_packet(packet, L, verbose=False):
+    # print "print_packet found", len(packet), "bytes:"
+    if verbose:
+        print get_pretty_hex(packet, 2, 4)
+
+    if verbose:
+        if (len(packet) >= 10):
+            [htype] = struct.unpack("!H", packet[8:10])
+            print 'HTYPE:', htype
+
+        if (len(packet) >= 12):
+            [ptype] = struct.unpack("!H", packet[10:12])
+            print 'PTYPE:', ptype
+
+        if (len(packet) >= 13):
+            [hlen] = struct.unpack("!B", packet[12:13])
+            print 'HLEN:', hlen
+
+        if (len(packet) >= 14):
+            [plen] = struct.unpack("!B", packet[13:14])
+            print 'PLEN:', plen
 
     if (len(packet) >= 16):
         [op_code] = struct.unpack("!H", packet[14:16])
-        print 'Type: ', get_operation_name(op_code)
+        print 'Type:', get_operation_name(op_code)
 
     if (len(packet) >= 20):
         [src_vid] = struct.unpack("!I", packet[16:20])
-        print  'Source: ', bin2str(src_vid, L)
+        print  'Source:', bin2str(src_vid, L)
 
     if (len(packet) >= 24):
         [dst_vid] = struct.unpack("!I", packet[20:24])
-        print  'Destination: ', bin2str(dst_vid, L)
+        print 'Destination:', bin2str(dst_vid, L)
 
     if (len(packet) >= 28):
         [payload] = struct.unpack("!I", packet[24:28])
-        print 'Payload: ', bin2str(payload, L)
+        print 'Payload:', bin2str(payload, L)
 
+    if (len(packet) > 28):
+        print 'Extra bytes:', packet[28:].encode("hex")
+
+    print "" # add new line to separate this output in the log
 
 def decode_discovery_packet(packet, L, dpid_length):
     # DEBUG
     print "decode_discovery_packet"
-    print_packet(packet, L)
+    print_packet(packet, L, True)
 
     [op_code] = struct.unpack("!H", packet[14:16])  # 3:5
     [svid] = struct.unpack("!I", packet[16:20])
