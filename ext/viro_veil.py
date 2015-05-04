@@ -74,9 +74,9 @@ def get_src(packet, L):
     return src
 
 
-# returns the rendezvousID for a node
-def get_rendezvous_id(dist, vid):
-    # Note: hash_val appears to return all zeros for everything right now -- OK?
+# returns the ID of the rendezvous point for distance = dist from node = vid
+# Right now, this is the first (L - dist + 1) bits of the vid followed by (dist-1) zeros
+def get_rdv_id(dist, vid):
     def hash_val(key, length):
         return length * '0'
     L = len(vid)
@@ -158,14 +158,17 @@ def create_RDV_QUERY(bucket_distance, vid, dst):
     return fwd + res + pack_header(RDV_QUERY) + src_vid + dst_vid + struct.pack("!I", bucket_distance)
 
 
-# gw is an int; other arguments are binary strings
-def create_RDV_REPLY(gw, bucket_distance, vid, dst):
+# gw_list is a list of integers; other arguments are binary strings
+def create_RDV_REPLY(gw_list, bucket_distance, vid, dst):
     fwd = struct.pack('!I', int(dst, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
     dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
     bucket_distance = struct.pack("!I", bucket_distance)
-    return fwd + res + pack_header(RDV_REPLY) + src_vid + dst_vid + bucket_distance + struct.pack("!I", gw)
+    gateways = ""
+    for gw in gw_list:
+        gateways += struct.pack("!I", gw)
+    return fwd + res + pack_header(RDV_REPLY) + src_vid + dst_vid + bucket_distance + gateways
 
 
 def create_RDV_WITHDRAW(failed_node, vid, dst):

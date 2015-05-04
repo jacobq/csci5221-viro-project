@@ -22,6 +22,7 @@ PLEN = 0x04
 # Per the CSCI 5221 Project 2 assignment document:
 # "We limit the maximal number of < Gateway; Nexthop > pairs in each level to 3."
 MAX_GW_PER_LEVEL = 3
+MAX_GW_PER_RDV_REPLY = MAX_GW_PER_LEVEL
 
 # HARDWARE ADDRESS FOR THE VEIL MASTER
 VEIL_MASTER_MAC = "00:00:00:00:00:00"
