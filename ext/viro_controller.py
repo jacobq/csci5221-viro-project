@@ -24,11 +24,13 @@ import pox.openflow.libopenflow_01 as of
 from pox.lib.util import *
 from pox.lib.recoco import Timer
 
+from viro_constant import L
 from viro_module import ViroModule
 from viro_switch import ViroSwitch
 from viro_veil import *
 
 log = core.getLogger()
+
 
 class ViroController(object):
     """
@@ -60,8 +62,7 @@ class ViroController(object):
         #   2. Convert that string to an integer (assuming base 16)
         #   3. Subtract 1 so that "00-00-00-00-00-01" corresponds with "000"
         #   4. Convert the int back into a string using base 2
-        #   5. Zero-pad the result the 3 bits to match the behavior of the original function (L = 3)
-        L = 3
+        #   5. Zero-pad the result to L bits
         return format(int(dpid.replace('-', ''), 16) - 1, 'b').zfill(L)
 
     def discover_neighbors(self, event): # TODO: Check caller signatures

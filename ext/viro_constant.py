@@ -1,5 +1,10 @@
+# Manually set L
+L = 3
+
 # OPERATIONS
 VIRO_DATA_OP =            0x0000
+VIRO_DATA =               0x0802
+VIRO_CONTROL =            0x0803
 RDV_PUBLISH =             0x1000
 RDV_QUERY =               0x2000
 RDV_REPLY =               0x3000
@@ -7,8 +12,6 @@ DISCOVERY_ECHO_REQUEST =  0x4000
 DISCOVERY_ECHO_REPLY =    0x5000
 GW_WITHDRAW =             0x6000
 RDV_WITHDRAW =            0x7000
-VIRO_DATA =               0x0802
-VIRO_CONTROL =            0x0803
 
 # OTHER PARTS OF THE HEADER
 HTYPE = 0x1
@@ -45,7 +48,7 @@ OPERATION_NAMES = {
     0x3000: 'RDV_REPLY',
     0x4000: 'DISCOVERY_ECHO_REQUEST',
     0x5000: 'DISCOVERY_ECHO_REPLY',
-    0x7000: 'RDV_WITHDRAW',
-    0x6000: 'GW_WITHDRAW'
+    0x6000: 'GW_WITHDRAW',
+    0x7000: 'RDV_WITHDRAW'
 }
 
