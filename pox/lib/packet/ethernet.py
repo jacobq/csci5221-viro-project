@@ -61,7 +61,6 @@ class ethernet(packet_base):
   LWAPP_TYPE = 0x88bb
   GSMP_TYPE  = 0x880c
   IPX_TYPE   = 0x8137
-  IPX_TYPE   = 0x8137
   WOL_TYPE   = 0x0842
   TRILL_TYPE = 0x22f3
   JUMBO_TYPE = 0x8870
