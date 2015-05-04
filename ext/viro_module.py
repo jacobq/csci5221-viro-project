@@ -303,8 +303,7 @@ class ViroModule(object):
             if not k in self.routing_table:
                 self.routing_table[k] = []
             if len(self.routing_table[k]) >= MAX_GW_PER_LEVEL:
-                print 'Node:', self.vid,\
-                    'has already has the maximum number of routing entries for reaching neighbors at distance: ', k
+                print 'Node:', self.vid, 'already has the maximum number of routing entries allowed for level: ', k
                 return
 
             next_hop, port = self.get_next_hop_rdv(gw_str)
@@ -358,8 +357,10 @@ class ViroModule(object):
         for gw in gw_list:
             gw_str = bin2str(gw, self.L)
 
-            if k in self.routing_table:
-                print 'Node:', self.vid, 'has already have an entry to reach neighbors at distance -', k
+            if not k in self.routing_table:
+                self.routing_table[k] = []
+            if len(self.routing_table[k]) >= MAX_GW_PER_LEVEL:
+                print 'Node:', self.vid, 'already has the maximum number of routing entries allowed for level', k
                 return
 
             next_hop, port = self.get_next_hop_rdv(gw_str)
@@ -376,8 +377,6 @@ class ViroModule(object):
                 'port': port
             }
 
-            # Already know that self.routing_table does not contain k (from prior if -> return)
-            self.routing_table[k] = []
             self.routing_table[k].append(bucket_info)
             self.recalculate_default_gw_for_bucket(k)
 
