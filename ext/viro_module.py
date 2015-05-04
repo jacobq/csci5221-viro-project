@@ -302,9 +302,6 @@ class ViroModule(object):
         for gw_str in gw_str_list:
             if not k in self.routing_table:
                 self.routing_table[k] = []
-            if len(self.routing_table[k]) >= MAX_GW_PER_LEVEL:
-                print 'Node:', self.vid, 'already has the maximum number of routing entries allowed for level: ', k
-                return
 
             next_hop, port = self.get_next_hop_rdv(gw_str)
             if next_hop == '':
@@ -359,9 +356,6 @@ class ViroModule(object):
 
             if not k in self.routing_table:
                 self.routing_table[k] = []
-            if len(self.routing_table[k]) >= MAX_GW_PER_LEVEL:
-                print 'Node:', self.vid, 'already has the maximum number of routing entries allowed for level', k
-                return
 
             next_hop, port = self.get_next_hop_rdv(gw_str)
             if next_hop == '':
