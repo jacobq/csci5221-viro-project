@@ -263,7 +263,7 @@ class ViroModule(object):
         print "RDV_QUERY message received from: ", src_vid
 
         # search in rdv store for the logically closest gateway to reach kth distance away neighbor
-        gw_str_list = self.find_gateways(k, src_vid)
+        gw_str_list = self.find_gateways_in_rdv_store(k, src_vid)
 
         # if found then form the reply packet and send to src_vid
         if len(gw_str_list) < 1:
@@ -293,15 +293,15 @@ class ViroModule(object):
         [k] = struct.unpack("!I", packet[24:28])
 
         # search in rdv store for the logically closest gateway to reach kth distance away neighbor
-        gw_list = self.find_gateways(k, src_vid)
+        gw_str_list = self.find_gateways_in_rdv_store(k, src_vid)
 
         # if found then form the reply packet and send to src_vid
-        if len(gw_list) < 1:
+        if len(gw_str_list) < 1:
             # No gateway found
             print 'Node:', self.vid, 'has no gateway for the rdv_query packet to reach bucket: ', k, 'for node: ', src_vid
             return ''
 
-        for gw_str in gw_list:
+        for gw_str in gw_str_list:
             if k in self.routing_table:
                 print 'Node:', self.vid, 'has already have an entry to reach neighbors at distance: ', k
                 return
@@ -393,15 +393,14 @@ class ViroModule(object):
 
         return gw
 
-    def find_gateways(self, k, src_vid):
+    def find_gateways_in_rdv_store(self, k, src_vid):
         gw = {}
         if k not in self.rdv_store:
-            return ''
+            return []
+        # Look through rdv store for next_hop entries
         for t in self.rdv_store[k]:
             rdv_vid = t[0]
             distance = delta(rdv_vid, src_vid)
-            if distance not in gw:
-                gw[distance] = rdv_vid
             gw[distance] = rdv_vid
         if len(gw) == 0:
             return []
@@ -413,7 +412,7 @@ class ViroModule(object):
             if len(gw_list) >= MAX_GW_PER_RDV_REPLY:
                 break
             gw_list.append(gw[key])
-        print "find_gateways about to return", gw_list
+        print "find_gateways_in_rdv_store about to return", gw_list
         return gw_list
 
 
