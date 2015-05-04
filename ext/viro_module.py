@@ -178,7 +178,7 @@ class ViroModule(object):
         print "Creating GW_WITHDRAW packet"
         packet = create_GW_WITHDRAW(failed_gw, vid, dst)
 
-        print self.vid, '- RDV Gateway Withdraw:', failed_gw, 'to dst:', dst
+        print self.vid, '- RDV gateway withdraw:', failed_gw, 'to dst:', dst
         return packet
 
 
@@ -186,7 +186,7 @@ class ViroModule(object):
         dst = get_rdv_id(k, self.vid)
         packet = create_RDV_QUERY(k, self.vid, dst)
 
-        print 'Node:', self.vid, 'is querying to reach Bucket:', k, 'to rdv:', dst
+        print 'Node:', self.vid, 'is querying to reach bucket:', k, 'to rdv:', dst
         return (packet, dst)
 
 
@@ -324,6 +324,30 @@ class ViroModule(object):
             self.recalculate_default_gw_for_bucket(k)
 
 
+    def find_gateways_in_rdv_store(self, k, src_vid):
+        gw_list = []
+        if k not in self.rdv_store:
+            return []
+        # Look through rdv store for next_hop entries
+        for t in self.rdv_store[k]:
+            gw_vid = t[0]
+            distance = delta(gw_vid, src_vid)
+            gw_list.append({'gw_vid': gw_vid, 'distance': distance})
+        if len(gw_list) < 1:
+            return []
+
+        # Sort the list of available gateways by distance (closest first)
+        gw_list.sort(key=lambda gw: gw['distance'])
+        # print "find_gateways_in_rdv_store found these gateways:", gw_list
+
+        # Truncate list so that it has at most MAX_GW_PER_RDV_REPLY entries
+        gw_list = gw_list[:MAX_GW_PER_RDV_REPLY]
+
+        # Remove the distance information from the list so it's a list of VIDs again instead of a list of dictionaries
+        gw_list = map(lambda x: x['gw_vid'], gw_list)
+        return gw_list
+
+
     def process_rdv_reply(self, packet):
         # Fill my routing table using this new information
         [k] = struct.unpack("!I", packet[24:28])
@@ -357,8 +381,22 @@ class ViroModule(object):
             self.routing_table[k].append(bucket_info)
             self.recalculate_default_gw_for_bucket(k)
 
+    def get_next_hop_rdv(self, gw_str):
+        next_hop = ''
+        port = ''
+
+        distance = delta(self.vid, gw_str)
+        if distance in self.routing_table:
+            for entry in self.routing_table[distance]:
+                if entry['default']:
+                    next_hop = bin2str(entry['next_hop'], self.L)
+                    port = str(entry['port'])
+
+        return (next_hop, port)
+
     # FIXME: Not used?
     def process_rdv_withdraw(self, packet):
+        print "WARNING: process_rdv_withdraw called but implementation not verified yet"
         src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
         payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
 
@@ -392,28 +430,6 @@ class ViroModule(object):
             print "I am the rdv point. My routing table is already updated."
 
         return gw
-
-    def find_gateways_in_rdv_store(self, k, src_vid):
-        gw = {}
-        if k not in self.rdv_store:
-            return []
-        # Look through rdv store for next_hop entries
-        for t in self.rdv_store[k]:
-            rdv_vid = t[0]
-            distance = delta(rdv_vid, src_vid)
-            gw[distance] = rdv_vid
-        if len(gw) == 0:
-            return []
-
-        s = gw.keys()
-        s.sort()
-        gw_list = []
-        for key in s:
-            if len(gw_list) >= MAX_GW_PER_RDV_REPLY:
-                break
-            gw_list.append(gw[key])
-        print "find_gateways_in_rdv_store about to return", gw_list
-        return gw_list
 
 
     # TODO: Dead code -- may be incorrect
@@ -453,16 +469,5 @@ class ViroModule(object):
         return result
 
 
-    def get_next_hop_rdv(self, gw_str):
-        next_hop = ''
-        port = ''
 
-        distance = delta(self.vid, gw_str)
-        if distance in self.routing_table:
-            for entry in self.routing_table[distance]:
-                if entry['default']:
-                    next_hop = bin2str(entry['next_hop'], self.L)
-                    port = str(entry['port'])
-
-        return (next_hop, port)
 
