@@ -1,5 +1,5 @@
 # Manually set L
-L = 3
+L = 4
 
 # OPERATIONS
 VIRO_DATA_OP =            0x0000
