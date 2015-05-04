@@ -27,8 +27,9 @@ class ViroSwitch(object):
         packet = event.parsed
         match = of.ofp_match.from_packet(packet)
         # matching the packet type
+        # print "OpenFlow (Ethernet) packet: ", packet
         try:
-            if (match.dl_type == packet.VIRO_TYPE ):
+            if match.dl_type == packet.VIRO_TYPE:
 
                 print  "VIRO packet received....."
                 payload = packet.payload
@@ -56,9 +57,8 @@ class ViroSwitch(object):
             # print "Neighbor discovery request message received from: ", neighbor_vid
 
             # Reply
-            r = create_DISCOVER_ECHO_REPLY(self.vid, self.dpid)
-            mac = FAKE_MAC
-            msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, r, event.port)
+            viro_packet = create_DISCOVER_ECHO_REPLY(self.vid, self.dpid)
+            msg = self.create_openflow_message(of.OFPP_IN_PORT, FAKE_SRC_MAC, viro_packet, event.port)
             self.connection.send(msg)
             # print "Neighbor discovery reply message sent"
 
@@ -94,8 +94,7 @@ class ViroSwitch(object):
                     if (rvdReplyPacket == ''):
                         return
 
-                    mac = FAKE_MAC
-                    msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, rvdReplyPacket, event.port)
+                    msg = self.create_openflow_message(of.OFPP_IN_PORT, FAKE_SRC_MAC, rvdReplyPacket, event.port)
                     self.connection.send(msg)
                     print "RDV_REPLY message sent"
 
@@ -115,7 +114,9 @@ class ViroSwitch(object):
 
     def create_openflow_message(self, openflow_port, mac, packet, event_port=None):
         # encapsulating the VIRO packet into an ethernet frame
-        e = ethernet(type=0x0802, src=EthAddr(mac))
+        # dst MAC defaults to ETHER_ANY = 00:00:00:00:00:00
+        # (currently that's the same as VEIL_MASTER_MAC)
+        e = ethernet(type=VIRO_DATA, src=EthAddr(mac), dst=EthAddr(VEIL_MASTER_MAC))
         e.set_payload(packet)
 
         # composing openFlow message
@@ -180,8 +181,7 @@ class ViroSwitch(object):
         # get next_hop and port
         next_hop, port = self.viro.get_next_hop(packet)
         if (next_hop != ''):
-            dst_dpid = FAKE_MAC
-            msg = self.create_openflow_message(of.OFPP_IN_PORT, dst_dpid, packet, int(port))
+            msg = self.create_openflow_message(of.OFPP_IN_PORT, FAKE_SRC_MAC, packet, int(port))
             self.connection.send(msg)
         else:
             print "Next hop is none"

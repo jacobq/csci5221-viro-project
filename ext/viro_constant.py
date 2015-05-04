@@ -2,7 +2,7 @@
 L = 4
 
 # OpenFlow Ethernet Frame type codes (dl_type)
-VIRO_DATA =    0x0802
+VIRO_DATA =    0x0802   # See ../pox/lib/packet/ethernet.py
 VIRO_CONTROL = 0x0803
 
 OP_NAMES = {
@@ -27,23 +27,32 @@ PTYPE = 0x0800
 HLEN = 0x06
 PLEN = 0x04
 
+
 # Per the CSCI 5221 Project 2 assignment document:
 # "We limit the maximal number of < Gateway; Nexthop > pairs in each level to 3."
 MAX_GW_PER_LEVEL = 3
 MAX_GW_PER_RDV_REPLY = MAX_GW_PER_LEVEL
 
-# HARDWARE ADDRESS FOR THE VEIL MASTER
-VEIL_MASTER_MAC = "00:00:00:00:00:00"
 
-# An arbitrary/fake MAC address that seems to be used in various places
-FAKE_MAC = '00:14:4f:e2:b3:70'
+# The range of hardware/MAC addresses
+# 00:14:4F:F8:00:00 - 00:14:4F:FF:FF:FF
+# is registered to Oracle Corporation and appears to have been used
+# in some of their old software (Logical Domain Manager?)
+# rather than in the manufacturing of NICs.
+# See http://docs.oracle.com/cd/E19604-01/821-0406/rangeofmacaddressesassignedtoldoms/index.html
+# However, I believe FAKE_SRC_MAC is basically just an arbitrary address (not specially chosen)
+FAKE_SRC_MAC = '00:14:4f:e2:b3:70'
+VEIL_MASTER_MAC = '00:00:00:00:00:00'
+
 
 # OFFSET FOR THE OPER
 OPER_OFFSET = 6
 OPER_LEN = 2
 
+
 # OFFSET FOR THE ECHO_SRC_VID
 ECHO_SRC_OFFSET = 8
+
 
 # The following _TIME parameter are all measured in seconds
 ROUND_TIME = 10     # Time between "bottom up" rounds for routing table construction (RDV_PUBLISH / RDV_QUERY)
