@@ -50,9 +50,9 @@ class ViroModule(object):
         print "Recalculating default gateway for bucket ",  bucket
         entries = self.routing_table[bucket]
         min_distance = float("inf")
-        min_gw = None
-        max_distance = 0
-        max_gw = None
+        min_entry = None
+        max_distance = -1
+        max_entry = None
         for entry in entries:
             # Clear default flag -- will set again once all distances have been computed
             entry['default'] = False
@@ -64,31 +64,31 @@ class ViroModule(object):
             # Update min/max pointers
             if distance > max_distance:
                 max_distance = distance
-                max_gw = gw
+                max_entry = entry
             if distance < min_distance:
                 min_distance = distance
-                min_gw = gw
+                min_entry = entry
 
-        if min_gw is None or max_gw is None:
+        if min_entry is None or max_entry is None:
             print "recalculate_default_gw_for_bucket did not find a min and max distance gateways (no gateways)"
             return
 
-        print "min_distance", min_distance, "min_gw = ", min_gw,\
-              "max_distance", max_distance, "max_gw = ", max_gw
+        print "min_distance =", min_distance, "min_entry =", min_entry
+        print "max_distance =", max_distance, "max_entry =", max_entry
 
         # Set (possibly new) default gateway for this bucket to be one having minimal distance
-        min_gw['default'] = True
+        min_entry['default'] = True
 
         # Limit number of entries (assume for now that there will be at most 1 too many)
         if len(entries) > MAX_GW_PER_LEVEL:
-            if not max_gw['default']:
+            max_gw_index = entries.index(max_entry)
+            if not max_entry['default']:
                 # Delete gateway at maximal distance (non-equidistant case)
-                max_gw_index = entries.index(max_gw)
                 del entries[max_gw_index]
             else:
                 # max_distance == min_distance (equidistant case)
                 # So just delete any non-default gateway
-                next_gw_index = (entries.index(max_gw) + 1) % len(entries)
+                next_gw_index = (max_gw_index + 1) % len(entries)
                 del entries[next_gw_index]
 
         # In case somehow there were more than 1 too many gateways then do this again.
@@ -114,7 +114,7 @@ class ViroModule(object):
         for distance in range(1, self.L + 1):
             if distance in self.routing_table:
                 for entry in self.routing_table[distance]:
-                    print 'Bucket::', distance, \
+                    print 'Bucket:', distance, \
                           'Port:', entry['port'], \
                           'Prefix:', entry['prefix'],\
                           'Gateway:', bin2str(entry['gateway'], self.L), \
