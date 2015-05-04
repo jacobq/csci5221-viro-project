@@ -47,7 +47,7 @@ class ViroModule(object):
     #   To do that we remove a gateway whose distance is maximal,
     #   and which was not selected as the default (in the case of all gateways being equidistant)
     def recalculate_default_gw_for_bucket(self, bucket):
-        print "Recalculating default gateway for bucket ",  bucket
+        print "Recalculating default gateway for bucket",  bucket
         entries = self.routing_table[bucket]
         min_distance = float("inf")
         min_entry = None
@@ -73,8 +73,9 @@ class ViroModule(object):
             print "recalculate_default_gw_for_bucket did not find a min and max distance gateways (no gateways)"
             return
 
-        print "min_distance =", min_distance, "min_entry =", min_entry
-        print "max_distance =", max_distance, "max_entry =", max_entry
+        # DEBUG
+        # print "min_distance =", min_distance, "min_entry =", min_entry
+        # print "max_distance =", max_distance, "max_entry =", max_entry
 
         # Set (possibly new) default gateway for this bucket to be one having minimal distance
         min_entry['default'] = True
@@ -159,7 +160,7 @@ class ViroModule(object):
         dst = get_rendezvous_id(k, self.vid)
         packet = create_RDV_PUBLISH(bucket, self.vid, dst)
 
-        print 'Node :', self.vid, 'is publishing neighbor', bin2str(bucket['next_hop'], self.L), 'to rdv:', dst
+        print 'Node:', self.vid, 'is publishing neighbor', bin2str(bucket['next_hop'], self.L), 'to rdv:', dst
         return (packet, dst)
 
 
@@ -167,7 +168,7 @@ class ViroModule(object):
         dst = get_rendezvous_id(RDV_level, self.vid)
         if dst != failedNode:
             packet = create_RDV_WITHDRAW(int(failedNode, 2), self.vid, '00')
-            print 'Node : ', self.vid, 'is withdrawing neighbor', failedNode, 'to rdv:', dst
+            print 'Node: ', self.vid, 'is withdrawing neighbor', failedNode, 'to rdv:', dst
 
             return packet
 
@@ -177,7 +178,7 @@ class ViroModule(object):
         print "Creating GW_WITHDRAW packet"
         packet = create_GW_WITHDRAW(failed_gw, vid, dst)
 
-        print self.vid, ' - RDV Gateway WithDraw:', failed_gw, 'to dst:', dst
+        print self.vid, '- RDV Gateway Withdraw:', failed_gw, 'to dst:', dst
         return packet
 
 
@@ -185,7 +186,7 @@ class ViroModule(object):
         dst = get_rendezvous_id(k, self.vid)
         packet = create_RDV_QUERY(k, self.vid, dst)
 
-        print 'Node :', self.vid, ' is quering to reach Bucket :', k, 'to rdv:', dst
+        print 'Node:', self.vid, 'is quering to reach Bucket:', k, 'to rdv:', dst
         return (packet, dst)
 
 
@@ -256,7 +257,7 @@ class ViroModule(object):
         return
 
 
-    def process_rvd_query(self, packet):
+    def process_rdv_query(self, packet):
         src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
         payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
         k = int(payload, 2)
@@ -269,7 +270,7 @@ class ViroModule(object):
         # if found then form the reply packet and send to src_vid
         if gw == '':
             # No gateway found
-            print 'Node : ', self.vid, 'has no gateway for the rdv_query packet to reach bucket: ', k, ' for node: ', src_vid
+            print 'Node: ', self.vid, 'has no gateway for the rdv_query packet to reach bucket: ', k, 'for node: ', src_vid
             return ''
 
         # create a RDV_REPLY packet and send it
@@ -286,7 +287,7 @@ class ViroModule(object):
         return reply_packet
 
 
-    def process_self_rvd_query(self, packet):
+    def process_self_rdv_query(self, packet):
         src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
         payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
 
@@ -298,11 +299,11 @@ class ViroModule(object):
         # if found then form the reply packet and send to src_vid
         if gw_str == '':
             # No gateway found
-            print 'Node :', self.vid, 'has no gateway for the rdv_query packet to reach bucket: ', k, ' for node: ', src_vid
+            print 'Node:', self.vid, 'has no gateway for the rdv_query packet to reach bucket: ', k, 'for node: ', src_vid
             return ''
 
         if k in self.routing_table:
-            print 'Node :', self.vid, 'has already have an entry to reach neighbors at distance: ', k
+            print 'Node:', self.vid, 'has already have an entry to reach neighbors at distance: ', k
             return
 
         next_hop, port = self.get_next_hop_rdv(gw_str)
@@ -331,7 +332,7 @@ class ViroModule(object):
         k = int(payload, 2)
 
         if k in self.routing_table:
-            print 'Node :', self.vid, ' has already have an entry to reach neighbors at distance - ', k
+            print 'Node:', self.vid, 'has already have an entry to reach neighbors at distance - ', k
             return
 
         next_hop, port = self.get_next_hop_rdv(gw_str)
@@ -357,7 +358,7 @@ class ViroModule(object):
         src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
         payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
 
-        print 'Node :', self.vid, 'has received process_rdv_withdraw from ', src_vid
+        print 'Node:', self.vid, 'has received process_rdv_withdraw from ', src_vid
 
         gw = {}
         print self.rdv_store
@@ -380,7 +381,7 @@ class ViroModule(object):
             for index in delete:
                 del self.rdv_store[level][index]
 
-        if self.vid != src_vid:  # I am the rvd itself: no need to update routing table.
+        if self.vid != src_vid:  # only need to update routing table if this came from someone else
             self.remove_failed_gw(packet)  # update the Routing Table
 
         else:

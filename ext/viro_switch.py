@@ -76,7 +76,7 @@ class ViroSwitch(object):
             dst_vid = get_dest(packet, L)
             src_vid = get_src(packet, L)
 
-            # forward the packet if I am not the destination
+            # forward the packet if it's not for us
             if dst_vid != self.vid:
                 self.route_viro_packet(packet)
                 return
@@ -84,22 +84,19 @@ class ViroSwitch(object):
             if op_code == RDV_QUERY:
                 print "RDV_QUERY message received"
                 if src_vid == self.vid:
-                    print "I am the rdv point - processing the packet"
-                    self.viro.process_self_rvd_query(packet)
+                    print "(processing my own RDV_QUERY)"
+                    self.viro.process_self_rdv_query(packet)
                     return
 
                 else:
-                    rvdReplyPacket = self.viro.process_rvd_query(packet)
-
+                    rvdReplyPacket = self.viro.process_rdv_query(packet)
                     if (rvdReplyPacket == ''):
                         return
 
                     mac = FAKE_MAC
                     msg = self.create_openflow_message(of.OFPP_IN_PORT, mac, rvdReplyPacket, event.port)
-
                     self.connection.send(msg)
                     print "RDV_REPLY message sent"
-
 
             elif op_code == RDV_PUBLISH:
                 self.viro.process_rdv_publish(packet)
