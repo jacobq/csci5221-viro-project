@@ -1,3 +1,5 @@
+import traceback
+
 import pox.openflow.libopenflow_01 as of
 from pox.lib.packet import *
 from pox.lib.addresses import *
@@ -36,19 +38,20 @@ class ViroSwitch(object):
                 if (packet_type == VIRO_CONTROL):
                     self.process_viro_packet(my_packet, match, event)  # handling the VIRO REQUEST
                     return
-        except:
+        except Exception as exception:
             print "Error while processing packet"
+            print traceback.format_exc()
 
 
     def process_viro_packet(self, packet, match=None, event=None):
         L = len(self.vid)
-        length = get_dpid_length(self.dpid)
+        dpid_length = get_dpid_length(self.dpid)
 
         op_code = get_op_code(packet)
 
         if op_code == DISCOVERY_ECHO_REQUEST:
-            packet_fields = print_discover_packet(packet, L, length)  # gets the fields from the packet
-            neighbor_vid = packet_fields[1]
+            packet_fields = decode_discovery_packet(packet, L, dpid_length)
+            neighbor_vid = packet_fields['sender_vid']
 
             print "Neighbor discovery request message received from: ", neighbor_vid
             r = create_DISCOVER_ECHO_REPLY(self.vid, self.dpid)
@@ -59,16 +62,16 @@ class ViroSwitch(object):
 
 
         elif op_code == DISCOVERY_ECHO_REPLY:
-            packet_fields = print_discover_packet(packet, L, length)  # gets the fields from the packet
-            neighbor_vid = packet_fields[1]
+            packet_fields = decode_discovery_packet(packet, L, dpid_length)
+            neighbor_vid = packet_fields['sender_vid']
             neighbor_port = event.port
             print "Neighbor discovery reply message received from: ", neighbor_vid
             self.viro.update_routing_table_based_on_neighbor(neighbor_vid, neighbor_port)
 
         else:
             # print_packet(packet, L)
-            dst_vid = get_dest(packet, L)  # gets the packet dst_vid
-            src_vid = get_src(packet, L)  # gets the packet src_vid
+            dst_vid = get_dest(packet, L)
+            src_vid = get_src(packet, L)
 
             # forward the packet if I am not the destination
             if dst_vid != self.vid:

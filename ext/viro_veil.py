@@ -91,17 +91,6 @@ def get_op_code(packet):
     return op_code
 
 
-# receives a packet from a tcp socket, waits till it receives NULL
-def receive_packet(sock):
-    data = sock.recv(128)
-    '''packet = ''
-    while data != '':
-        packet = packet+data
-        data = sock.recv(64)
-        print 'data received: ', data'''
-    return data
-
-
 # check if the bucket is already present in the set or not:
 def is_duplicate_bucket(bucket_list, new_bucket):
     is_duplicate = False
@@ -211,8 +200,27 @@ def flip_bit(dst, distance):
     return prefix
 
 
+def print_as_hex_bytes(packed_data):
+    # Breaks sequences/arrays into nice groups
+    # http://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks-in-python
+    def chunks(l, n):
+        n = max(1, n)
+        return [l[i:i + n] for i in range(0, len(l), n)]
+
+    unpacked = ""
+    for c in packed_data:
+        [b] = struct.unpack('!B', c)
+        unpacked += hex(b).replace('0x', '').zfill(2)
+    return '\n'.join(chunks(' '.join(chunks(unpacked, 2)), 8+3+1)) # 8 digits + 3 spaces + 1 trailing space
+
 # prints the packet content
 def print_packet(packet, L):
+    print "Raw packet (hex):\n", print_as_hex_bytes(packet)
+
+    if (len(packet) < 28):
+        print "ERROR: print_packet expected a packet with >= 28 bytes but got", len(packet)
+        return
+
     [op_code] = struct.unpack("!H", packet[14:16])  # 6:8
     [src_vid] = struct.unpack("!I", packet[16:20])
     [dst_vid] = struct.unpack("!I", packet[20:24])
@@ -228,34 +236,38 @@ def print_packet(packet, L):
         'Payload: ', bin2str(payload, L)
 
 
-# print DiscoveryPacket
-def print_discover_packet(packet, L, length):
-    [op_code] = struct.unpack("!H", packet[14:16])  # 3:5
+def decode_discovery_packet(packet, L, dpid_length):
+    # DEBUG
+    print "decode_discovery_packet"
+    print_packet(packet, L)
 
+    [op_code] = struct.unpack("!H", packet[14:16])  # 3:5
     [svid] = struct.unpack("!I", packet[16:20])
     #[dpid1] = struct.unpack("!I", packet[12:18])
-
     #[port] = struct.unpack("!I",packet[18:22]) #15:19
     #[payload] = struct.unpack("!I", packet[16:20])
-
 
     if op_code not in OPERATION_NAMES:
         print 'Unknown packet op_code: ', hex(op_code)
         print 'Content in hexadecimal: ', packet.encode("hex")
         # Need to return none if no match
         #return 
-    #print 'Type: ',OPERATION_NAMES[op_code], 'VID: ', bin2str(svid,L), 'dpid: ', bin2str(dpid,length), 'port : ' , [port][0]
+    #print 'Type: ',OPERATION_NAMES[op_code], 'VID: ', bin2str(svid,L), 'dpid: ', bin2str(dpid,dpid_length), 'port : ' , [port][0]
     #print 'Type: ',OPERATION_NAMES[op_code], 'VID: ', bin2str(svid,L), 'port : ' , [port][0]
-    return (op_code, bin2str(svid, L))
+    return {
+        'op_code': op_code,
+        'sender_vid': bin2str(svid, L)
+    }
 
 
 # converts the binary representation of an integer to binary string.
 def bin2str(id, L):
-    bin_str = bin(id)
-    bin_str = bin_str.replace('0b', '')
+    bin_str = bin2str_unpadded(id)
     bin_str = (L - len(bin_str)) * '0' + bin_str
     return bin_str
 
+def bin2str_unpadded(data):
+    return bin(data).replace('0b', '')
 
 # logical distance 
 def delta(vid1, vid2):
