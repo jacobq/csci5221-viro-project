@@ -354,12 +354,12 @@ class ViroModule(object):
         gw_offset = 28
         num_of_gw = (len(packet) - gw_offset)/4
         gw_list = struct.unpack("!" + "I"*num_of_gw, packet[28:(28+4*num_of_gw)])
-        print "RDV_REPLY contained", num_of_gw, "gateway(s):", gw_list
+        print "RDV_REPLY contained", num_of_gw, "gateway(s):", map(lambda s: bin2str(s, self.L), gw_list)
         for gw in gw_list:
             gw_str = bin2str(gw, self.L)
 
             if k in self.routing_table:
-                print 'Node:', self.vid, 'has already have an entry to reach neighbors at distance - ', k
+                print 'Node:', self.vid, 'has already have an entry to reach neighbors at distance -', k
                 return
 
             next_hop, port = self.get_next_hop_rdv(gw_str)
