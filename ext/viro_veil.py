@@ -102,9 +102,10 @@ def is_duplicate_bucket(bucket_list, new_bucket):
     return is_duplicate
 
 
+
+
 def pack_header(operation):
     return struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, operation)
-
 
 def pack_mac(data):
     return pack_bytes(get_mac_array(data))
@@ -244,18 +245,35 @@ def delta(vid1, vid2):
 
 # Debug functions
 def print_packet(packet, L, verbose=False):
+    def hex_value(i, num_bytes=1):
+        return '0x' + hex(i).replace('0x', '').zfill(2*num_bytes)
+
     # print "print_packet found", len(packet), "bytes:"
     if verbose:
         print get_pretty_hex(packet, 2, 4)
 
     if verbose:
+        if (len(packet) >= 4):
+            [fwd] = struct.unpack("!I", packet[0:4])
+            print 'fwd:', hex_value(fwd, 4)
+
+        if (len(packet) >= 6):
+            [res] = struct.unpack("!H", packet[4:6])
+            print 'res:', hex_value(fwd, 2)
+
+        if (len(packet) >= 8):
+            [of_type] = struct.unpack("!H", packet[6:8])
+            if of_type != VIRO_CONTROL:
+                print "WARNING: This packet does not have dl_type == VIRO_CONTROL"
+            print 'of_type:', hex_value(of_type, 2)
+
         if (len(packet) >= 10):
             [htype] = struct.unpack("!H", packet[8:10])
-            print 'HTYPE:', htype
+            print 'HTYPE:', hex_value(htype, 2)
 
         if (len(packet) >= 12):
             [ptype] = struct.unpack("!H", packet[10:12])
-            print 'PTYPE:', ptype
+            print 'PTYPE:', hex_value(ptype, 2)
 
         if (len(packet) >= 13):
             [hlen] = struct.unpack("!B", packet[12:13])
@@ -277,12 +295,8 @@ def print_packet(packet, L, verbose=False):
         [dst_vid] = struct.unpack("!I", packet[20:24])
         print 'Destination:', bin2str(dst_vid, L)
 
-    if (len(packet) >= 28):
-        [payload] = struct.unpack("!I", packet[24:28])
-        print 'Payload:', bin2str(payload, L)
-
-    if (len(packet) > 28):
-        print 'Extra bytes:', packet[28:].encode("hex")
+    if (len(packet) > 24):
+        print 'Payload:', "0x" + packet[28:].encode("hex")
 
     print "" # add new line to separate this output in the log
 
