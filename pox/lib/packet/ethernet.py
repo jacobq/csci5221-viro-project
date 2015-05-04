@@ -48,6 +48,7 @@ class ethernet(packet_base):
   MIN_LEN = 14
 
   IP_TYPE    = 0x0800
+  VIRO_TYPE  = 0x0802           # Custom for CSci 5221 VIRO project
   ARP_TYPE   = 0x0806
   RARP_TYPE  = 0x8035
   VLAN_TYPE  = 0x8100
@@ -66,7 +67,6 @@ class ethernet(packet_base):
   JUMBO_TYPE = 0x8870
   SCSI_TYPE  = 0x889a
   ATA_TYPE   = 0x88a2
-  VIRO_TYPE   = 0x0802
   QINQ_TYPE  = 0x9100
 
   INVALID_TYPE = 0xffff
