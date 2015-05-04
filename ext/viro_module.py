@@ -454,14 +454,16 @@ class ViroModule(object):
         return result
 
 
-    def get_next_hop_rdv(self, dst_vid_str):
+    def get_next_hop_rdv(self, gw_str):
         next_hop = ''
         port = ''
 
-        distance = delta(self.vid, dst_vid_str)
+        distance = delta(self.vid, gw_str)
         if distance in self.routing_table:
-            next_hop = bin2str(self.routing_table[distance][0]['next_hop'], self.L)
-            port = str(self.routing_table[distance][0]['port'])
+            for entry in self.routing_table[distance]:
+                if entry['default']:
+                    next_hop = bin2str(entry['next_hop'], self.L)
+                    port = str(entry['port'])
 
         return (next_hop, port)
 
