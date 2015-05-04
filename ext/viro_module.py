@@ -208,7 +208,7 @@ class ViroModule(object):
             if next_hop != '':
                 break
 
-            if (packet_type != RDV_PUBLISH) and (packet_type != RDV_QUERY):
+            if (packet_type != OP_CODES['RDV_PUBLISH']) and (packet_type != OP_CODES['RDV_QUERY']):
                 break
 
             print 'No next hop for destination: ', dst_vid, 'distance: ', distance

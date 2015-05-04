@@ -54,8 +54,8 @@ def get_operation(packet):
 
 # convert operation number into a string
 def get_operation_name(operation):
-    if operation in OPERATION_NAMES:
-        return OPERATION_NAMES[operation]
+    if operation in OP_NAMES:
+        return OP_NAMES[operation]
     else:
         return 'UNKNOWN OPERATION'
 
@@ -122,14 +122,14 @@ def create_DISCOVER_ECHO_REQUEST(vid, dst_dpid):
     fwd = struct.pack('!I', 0)
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2))    # Sender VID (32 bits)
-    return fwd + res + pack_header(DISCOVERY_ECHO_REQUEST) + src_vid + pack_mac(dst_dpid)
+    return fwd + res + pack_header(OP_CODES['DISCOVERY_ECHO_REQUEST']) + src_vid + pack_mac(dst_dpid)
 
 
 def create_DISCOVER_ECHO_REPLY(vid, dpid):
     fwd = struct.pack('!I', int('0', 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
-    return fwd + res + pack_header(DISCOVERY_ECHO_REPLY) + src_vid + pack_mac(dpid)
+    return fwd + res + pack_header(OP_CODES['DISCOVERY_ECHO_REPLY']) + src_vid + pack_mac(dpid)
 
 
 def create_VIRO_DATA(src_vid, dst_vid, fwd_vid, ttl, payload):
@@ -138,7 +138,7 @@ def create_VIRO_DATA(src_vid, dst_vid, fwd_vid, ttl, payload):
     src_vid = struct.pack("!I", int(src_vid, 2))
     dst_vid = struct.pack("!I", int(dst_vid, 2))
     p = struct.pack("!I", payload)
-    return fwd + res + pack_header(VIRO_DATA_OP) + src_vid + dst_vid + p
+    return fwd + res + pack_header(OP_CODES['VIRO_DATA_OP']) + src_vid + dst_vid + p
 
 
 def create_RDV_PUBLISH(bucket, vid, dst):
@@ -147,7 +147,7 @@ def create_RDV_PUBLISH(bucket, vid, dst):
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
     dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
     next_hop = struct.pack("!I", bucket['next_hop']) # Destination Subtree-k
-    return fwd + res + pack_header(RDV_PUBLISH) + src_vid + dst_vid + next_hop
+    return fwd + res + pack_header(OP_CODES['RDV_PUBLISH']) + src_vid + dst_vid + next_hop
 
 
 # bucket_dist is an int; other arguments are binary strings
@@ -156,7 +156,7 @@ def create_RDV_QUERY(bucket_distance, vid, dst):
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
     dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
-    return fwd + res + pack_header(RDV_QUERY) + src_vid + dst_vid + struct.pack("!I", bucket_distance)
+    return fwd + res + pack_header(OP_CODES['RDV_QUERY']) + src_vid + dst_vid + struct.pack("!I", bucket_distance)
 
 
 # gw_list is a list of integers; other arguments are binary strings
@@ -169,7 +169,7 @@ def create_RDV_REPLY(gw_list, bucket_distance, vid, dst):
     gateways = ""
     for gw in gw_list:
         gateways += struct.pack("!I", gw)
-    return fwd + res + pack_header(RDV_REPLY) + src_vid + dst_vid + bucket_distance + gateways
+    return fwd + res + pack_header(OP_CODES['RDV_REPLY']) + src_vid + dst_vid + bucket_distance + gateways
 
 
 def create_RDV_WITHDRAW(failed_node, vid, dst):
@@ -178,7 +178,7 @@ def create_RDV_WITHDRAW(failed_node, vid, dst):
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
     dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
-    return fwd + res + pack_header(RDV_WITHDRAW) + src_vid + dst_vid + struct.pack("!I", failed_node)
+    return fwd + res + pack_header(OP_CODES['RDV_WITHDRAW']) + src_vid + dst_vid + struct.pack("!I", failed_node)
 
 
 def create_GW_WITHDRAW(failed_gw, vid, dst):
@@ -188,7 +188,7 @@ def create_GW_WITHDRAW(failed_gw, vid, dst):
     src_vid = struct.pack("!I", int(vid, 2)) # Sender VID (32 bits)
     dst_vid = struct.pack("!I", int(dst, 2)) # Destination VID (32 bits)
     z = struct.pack("!I", int(failed_gw, 2)) # Destination Subtree-k
-    return fwd + res + pack_header(GW_WITHDRAW) + src_vid + dst_vid + z
+    return fwd + res + pack_header(OP_CODES['GW_WITHDRAW']) + src_vid + dst_vid + z
 
 
 # flips the kth bit (from the right) in the dst and returns it.

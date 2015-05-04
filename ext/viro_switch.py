@@ -45,11 +45,12 @@ class ViroSwitch(object):
 
     def process_viro_packet(self, packet, match=None, event=None):
         L = len(self.vid)
+        print_packet(packet, L, True)
         dpid_length = get_dpid_length(self.dpid)
 
         op_code = get_op_code(packet)
 
-        if op_code == DISCOVERY_ECHO_REQUEST:
+        if op_code == OP_CODES['DISCOVERY_ECHO_REQUEST']:
             packet_fields = decode_discovery_packet(packet, L, dpid_length)
             neighbor_vid = packet_fields['sender_vid']
             # print "Neighbor discovery request message received from: ", neighbor_vid
@@ -62,7 +63,7 @@ class ViroSwitch(object):
             # print "Neighbor discovery reply message sent"
 
 
-        elif op_code == DISCOVERY_ECHO_REPLY:
+        elif op_code == OP_CODES['DISCOVERY_ECHO_REPLY']:
             packet_fields = decode_discovery_packet(packet, L, dpid_length)
             neighbor_vid = packet_fields['sender_vid']
             neighbor_port = event.port
@@ -81,7 +82,7 @@ class ViroSwitch(object):
                 self.route_viro_packet(packet)
                 return
 
-            if op_code == RDV_QUERY:
+            if op_code == OP_CODES['RDV_QUERY']:
                 print "RDV_QUERY message received"
                 if src_vid == self.vid:
                     print "(processing my own RDV_QUERY)"
@@ -98,17 +99,17 @@ class ViroSwitch(object):
                     self.connection.send(msg)
                     print "RDV_REPLY message sent"
 
-            elif op_code == RDV_PUBLISH:
+            elif op_code == OP_CODES['RDV_PUBLISH']:
                 self.viro.process_rdv_publish(packet)
 
 
-            elif op_code == RDV_REPLY:
+            elif op_code == OP_CODES['RDV_REPLY']:
 
                 print "RDV_REPLY message received"
                 self.viro.process_rdv_reply(packet)
 
-            elif op_code == VIRO_DATA_OP:
-                # The part where it handles VIRO data packet
+            elif op_code == OP_CODES['VIRO_DATA_OP']:
+                # The part where it handles VIRO data packet (by dropping it)
                 print "Received a VIRO Data Packet"
 
 
