@@ -226,18 +226,14 @@ class ViroSwitch(object):
             # so now we need to select a new gateway to use instead.
             # Since we look through the routing table to pick a random gateway we go ahead
             # and grab the next hop and port rather than looking them up
-            try:
-                fwd_vid, next_hop, port = self.viro.choose_gateway_for_forwarding_directive(dst_vid)
-            except:
-                next_hop = ''
-                print traceback.format_exc()
+            fwd_vid, next_hop, port = self.viro.choose_gateway_for_forwarding_directive(dst_vid)
         else:
             # Don't need to change forwarding directive, but do need to find next hop from routing table
             # for the forwarding directive that was already specified
             next_hop, port = self.viro.get_next_hop(dst_vid)
 
         # Now send the packet to the next hop associated with the VID in the forwarding directive
-        if next_hop != '':
+        if next_hop is not None:
             # We could just modify the field in the original packet then send but
             # since the packed format makes that inconvenient here
             # we just create a new packet with the updated values instead.
@@ -255,7 +251,7 @@ class ViroSwitch(object):
         packet_type = get_operation(packet)
         is_query_or_publish = packet_type == OP_CODES['RDV_PUBLISH'] or packet_type == OP_CODES['RDV_QUERY']
         next_hop, port = self.viro.get_next_hop(dst_vid, is_query_or_publish)
-        if next_hop != '':
+        if next_hop is not None:
             self.send_packet_out_port(packet, port)
         else:
             print "No next hop found, so cannot route packet (using default/single path)"

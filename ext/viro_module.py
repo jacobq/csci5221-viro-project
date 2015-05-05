@@ -179,10 +179,10 @@ class ViroModule(object):
         return (packet, dst)
 
     def get_next_hop(self, dst_vid, is_query_or_publish=False):
-        next_hop = ''
-        port = ''
+        next_hop = None
+        port = None
 
-        while next_hop == '':
+        while next_hop is None:
             distance = delta(self.vid, dst_vid)
             if distance == 0:
                 break
@@ -193,7 +193,7 @@ class ViroModule(object):
                         next_hop = str(entry['next_hop'])
                         port = int(entry['port'])
                         break
-            if next_hop != '':
+            if next_hop is not None:
                 break
 
             # TODO: This code "smells" bad -- not sure if it's even doing anything important/correct
@@ -205,9 +205,8 @@ class ViroModule(object):
             # flip the distance bit to
             dst_vid = flip_bit(dst_vid, distance)
 
-        if next_hop == '':
+        if next_hop is None:
             print 'No route to destination', 'MyVID: ', self.vid, 'DEST: ', dst_vid
-            return ('', '')
 
         return next_hop, port
 
@@ -376,15 +375,15 @@ class ViroModule(object):
         distance = delta(dst_vid, self.vid)
         if distance < 1:
             print "WARNING: choose_gateway_for_forwarding_directive was asked to get a gateway to reach ourselves"
-        if distance in self.routing_table:
+        if distance in self.routing_table and len(self.routing_table[distance]) > 0:
             entries = self.routing_table[distance]
-            random_index = random.randrange(0, len(entries) - 1)
+            random_index = random.randrange(0, len(entries))
             selected_entry = entries[random_index]
             print "Selected (random) gateway for forwarding directive:", selected_entry
             return selected_entry['gateway'], selected_entry['next_hop'], selected_entry['port']
         else:
             print "Could not find a gateway for distance =", distance, "for dst_vid=", dst_vid
-            raise RuntimeError("No suitable gateway found for level " + str(distance))
+            return None, None, None
 
     # FIXME: Not used?
     def process_rdv_withdraw(self, packet):
