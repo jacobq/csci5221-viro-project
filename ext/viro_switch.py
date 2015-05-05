@@ -54,7 +54,7 @@ class ViroSwitch(object):
         if op_code == OP_CODES['DISCOVERY_ECHO_REQUEST']:
             packet_fields = decode_discovery_packet(packet, L, dpid_length)
             neighbor_vid = packet_fields['sender_vid']
-            # print "Neighbor discovery request message received from: ", neighbor_vid
+            print "Neighbor discovery request message received from: ", neighbor_vid
 
             # Reply
             viro_packet = create_DISCOVER_ECHO_REPLY(self.vid, self.dpid)

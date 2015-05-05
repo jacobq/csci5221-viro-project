@@ -102,10 +102,9 @@ def is_duplicate_bucket(bucket_list, new_bucket):
     return is_duplicate
 
 
-
-
 def pack_header(operation):
     return struct.pack("!HHBBH", HTYPE, PTYPE, HLEN, PLEN, operation)
+
 
 def pack_mac(data):
     return pack_bytes(get_mac_array(data))
@@ -132,13 +131,21 @@ def create_DISCOVER_ECHO_REPLY(vid, dpid):
     return fwd + res + pack_header(OP_CODES['DISCOVERY_ECHO_REPLY']) + src_vid + pack_mac(dpid)
 
 
+# This function generates/encodes/packs the "Data Packet" described in the
+# first subtask of task 2. Conveniently, the fwd_vid and ttl parameters
+# are already listed in the arguments.
+# Note that "fwd" and "res" are unrelated & outside the scope of this project
+# (Guobao said to leave them in place as they're for POX / Open vSwitch, so I will)
+# Arguments are strings of '0's and '1's
 def create_VIRO_DATA(src_vid, dst_vid, fwd_vid, ttl, payload):
     fwd = struct.pack('!I', int(dst_vid, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid = struct.pack("!I", int(src_vid, 2))
     dst_vid = struct.pack("!I", int(dst_vid, 2))
+    fwd_vid = struct.pack("!I", int(fwd_vid, 2))    # FWD-VID: forwarding directive
+    ttl_and_padding = struct.pack("!BBBB", int(ttl, 2), 0, 0, 0)
     p = struct.pack("!I", payload)
-    return fwd + res + pack_header(OP_CODES['VIRO_DATA_OP']) + src_vid + dst_vid + p
+    return fwd + res + pack_header(OP_CODES['VIRO_DATA_OP']) + src_vid + dst_vid + fwd_vid + ttl_and_padding + p
 
 
 def create_RDV_PUBLISH(bucket, vid, dst):
