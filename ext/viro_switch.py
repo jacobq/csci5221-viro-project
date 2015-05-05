@@ -211,7 +211,7 @@ class ViroSwitch(object):
 
     def route_viro_packet_via_forwarding_directive(self, packet):
         packet_fields = decode_viro_data_packet_contents(packet, L)
-        print "Decoded VIRO_DATA_OP packet:", packet_fields
+        # print "Routing VIRO data packet:", packet_fields
         ttl = packet_fields['ttl']
         if ttl < 1:
             print "TTL expired: dropping data packet"
@@ -230,6 +230,7 @@ class ViroSwitch(object):
                 fwd_vid, next_hop, port = self.viro.choose_gateway_for_forwarding_directive(dst_vid)
             except:
                 next_hop = ''
+                print traceback.format_exc()
         else:
             # Don't need to change forwarding directive, but do need to find next hop from routing table
             # for the forwarding directive that was already specified
