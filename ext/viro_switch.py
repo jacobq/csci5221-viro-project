@@ -179,15 +179,13 @@ class ViroSwitch(object):
     def send_sample_viro_data(self):
         src_vid = self.vid
         dst_vid = self.demo_packet_sequence[self.demo_sequence_number % len(self.demo_packet_sequence)]
-        try:
-            fwd_vid = self.viro.choose_gateway_for_forwarding_directive(dst_vid)
-        except RuntimeError as e:
-            print "WARNING: send_sample_viro_data could not determine forwarding directive (unreachable?) so not sending"
-            return
+        # Start with our own VID as the forwarding directive and let the routing function
+        # select an appropriate forwarding directive
+        fwd_vid = src_vid
         self.demo_sequence_number += 1
         payload = bin(self.demo_sequence_number % 2**32).replace("0b", "")
         packet = create_VIRO_DATA(src_vid, dst_vid, fwd_vid, MAX_TTL, payload)
-        self.route_viro_packet(packet)
+        self.process_viro_packet(packet)
 
     # If this packet is destined for us then process it.
     # Otherwise, if it's a "data packet" then route it using multi-path routing.

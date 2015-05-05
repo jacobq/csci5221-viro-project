@@ -373,6 +373,8 @@ class ViroModule(object):
     # Returns gateway, next hop, and port
     def choose_gateway_for_forwarding_directive(self, dst_vid):
         distance = delta(dst_vid, self.vid)
+        if distance < 1:
+            print "WARNING: choose_gateway_for_forwarding_directive was asked to get a gateway to reach ourselves"
         if distance in self.routing_table:
             entries = self.routing_table[distance]
             random_index = random.randomrange(0, len(entries) - 1)
