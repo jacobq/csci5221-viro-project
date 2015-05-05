@@ -140,12 +140,14 @@ def create_DISCOVER_ECHO_REPLY(vid, dpid):
 def create_VIRO_DATA(src_vid, dst_vid, fwd_vid, ttl, payload):
     fwd = struct.pack('!I', int(dst_vid, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
-    src_vid = struct.pack("!I", int(src_vid, 2))
-    dst_vid = struct.pack("!I", int(dst_vid, 2))
-    fwd_vid = struct.pack("!I", int(fwd_vid, 2))    # FWD-VID: forwarding directive
-    ttl_and_padding = struct.pack("!BBBB", int(ttl, 2), 0, 0, 0)
-    p = struct.pack("!I", payload)
-    return fwd + res + pack_header(OP_CODES['VIRO_DATA_OP']) + src_vid + dst_vid + fwd_vid + ttl_and_padding + p
+    src_vid_packed = struct.pack("!I", int(src_vid, 2))
+    dst_vid_packed = struct.pack("!I", int(dst_vid, 2))
+    fwd_vid_packed = struct.pack("!I", int(fwd_vid, 2))    # FWD-VID: forwarding directive
+    ttl_and_padding = struct.pack("!BBH", int(ttl, 2), 0, 0)
+    payload_packed = struct.pack("!I", payload)
+    return fwd + res + pack_header(OP_CODES['VIRO_DATA_OP']) +\
+           src_vid_packed + dst_vid_packed + fwd_vid_packed +\
+           ttl_and_padding + payload_packed
 
 
 def create_RDV_PUBLISH(bucket, vid, dst):
@@ -203,9 +205,9 @@ def flip_bit(dst, distance):
     L = len(dst)
     prefix = dst[:L - distance]
     if dst[L - distance] == '0':
-        prefix = prefix + '1'
+        prefix += '1'
     else:
-        prefix = prefix + '0'
+        prefix += '0'
     prefix = prefix + dst[L - distance + 1:]
     return prefix
 
@@ -230,6 +232,32 @@ def decode_discovery_packet(packet, L, dpid_length):
     }
 
 
+# Takes packed string representation of VIRO_DATA_OP packet and L
+# Returns dictionary with the fields after the op code
+# (i.e. the one specific to VIRO_DATA_OP packets)
+# The VIDs are returned as strings of '0's and '1's
+# The TTL is returned as an integer
+# The payload is also returned as a string of '0's and '1's
+def decode_viro_data_packet_contents(packet, L):
+    try:
+        src_vid = struct.unpack("!I", packet[16:20])
+        dst_vid = struct.unpack("!I", packet[20:24])
+        fwd_vid = struct.unpack("!I", packet[24:28])
+        ttl = struct.unpack("!B", packet[28:29])
+        payload = struct.unpack("!I", packet[32:36])
+        return {
+            'src_vid': bin2str(src_vid, L),
+            'dst_vid': bin2str(dst_vid, L),
+            'fwd_vid': bin2str(fwd_vid, L),
+            'ttl': ttl,
+            'payload': bin2str(payload, 8)
+        }
+    except:
+        # Should never happen in our isolated system since no one else is
+        # sending us these packets and we guarantee proper format/encoding.
+        # Nevertheless we try to detect this error and log as a best practice.
+        print "ERROR: encountered malformed VIRO_DATA_OP packet"
+
 # converts the binary representation of an integer to binary string.
 def bin2str(id, L):
     bin_str = bin(id).replace('0b', '')
@@ -250,6 +278,7 @@ def delta(vid1, vid2):
     return distance
 
 
+######################################
 # Debug functions
 def print_packet(packet, L, verbose=False):
     def hex_value(i, num_bytes=1):

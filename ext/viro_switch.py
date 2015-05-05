@@ -8,13 +8,14 @@ from viro_veil import *
 
 class ViroSwitch(object):
     def __init__(self, connection, transparent, viro_module):
-
         self.connection = connection
         self.transparent = transparent
         self.viro = viro_module
         self.dpid = viro_module.dpid
         self.vid = viro_module.vid
         self.round = 1
+        self.demo_packet_sequence = self.generate_demo_packet_sequence()
+        self.demo_sequence_number = 0
 
         # We want to hear PacketIn messages, so we listen
         connection.addListeners(self)
@@ -42,7 +43,6 @@ class ViroSwitch(object):
         except Exception as exception:
             print "Error while processing packet"
             print traceback.format_exc()
-
 
     def process_viro_packet(self, packet, match=None, event=None):
         L = len(self.vid)
@@ -108,9 +108,8 @@ class ViroSwitch(object):
                 self.viro.process_rdv_reply(packet)
 
             elif op_code == OP_CODES['VIRO_DATA_OP']:
-                # The part where it handles VIRO data packet (by dropping it)
-                print "Received a VIRO Data Packet"
-
+                # The part where it handles VIRO data packet (by printing it then dropping it)
+                print "Received a VIRO Data Packet:", decode_viro_data_packet_contents(packet, L)
 
     def create_openflow_message(self, openflow_port, mac, packet, event_port=None):
         # encapsulating the VIRO packet into an ethernet frame
@@ -129,7 +128,6 @@ class ViroSwitch(object):
             msg.in_port = event_port
         return msg
 
-
     def start_round(self):
         print "vid", self.vid, 'starting round: ', self.round
 
@@ -142,7 +140,6 @@ class ViroSwitch(object):
             self.round = L
 
         self.viro.print_routing_table()
-
 
     def run_round(self, round):
         routing_table = self.viro.routing_table
@@ -165,23 +162,105 @@ class ViroSwitch(object):
                 packet, dst = self.viro.query(k)
                 self.route_viro_packet(packet)
 
+    # This function runs during initialization and just serves to generate
+    # a set of VIDs that will be used for sending sample data packets for routing demonstration
+    def generate_demo_packet_sequence(self):
+        vid_sequence = []
+        for vid in range(0, 2**L - 1):
+            vid_sequence.append(bin2str(vid, L))
+        print "Created demo/sample sequence of VIDs to send VIRO data packets to:", vid_sequence
+        return vid_sequence
 
+    # This function gets called periodically by a timer
+    # It simply steps through a sequence of destination VIDs, sending a message to another one
+    # each time it is executed. The payload is just a rolling 32-bit counter value
+    # that doesn't have any meaning in this simple demonstration except to distinguish / identify it
+    # it in the switches log messages.
+    def send_sample_viro_data(self):
+        src_vid = self.vid
+        dst_vid = self.demo_packet_sequence[self.demo_sequence_number % len(self.demo_packet_sequence)]
+        try:
+            fwd_vid = self.viro.choose_gateway_for_forwarding_directive(dst_vid)
+        except RuntimeError as e:
+            print "WARNING: send_sample_viro_data could not determine forwarding directive (unreachable?) so not sending"
+            return
+        self.demo_sequence_number += 1
+        payload = bin(self.demo_sequence_number % 2**32).replace("0b", "")
+        packet = create_VIRO_DATA(src_vid, dst_vid, fwd_vid, MAX_TTL, payload)
+        self.route_viro_packet(packet)
+
+    # If this packet is destined for us then process it.
+    # Otherwise, if it's a "data packet" then route it using multi-path routing.
+    # Otherwise use the single-path routing algorithm provided since
+    # the packet doesn't have the forwarding directive field in its header.
+    # (We could update the packet format for these or encapsulate them into data packets,
+    # but this is not necessary for this assignment.)
     def route_viro_packet(self, packet):
-        # Type of packet: rvds Query or Publish
-        # k - bucket level
         L = len(self.vid)
         dst = get_dest(packet, L)
-
-        # If it's me
         if (dst == self.vid):
+            # Packet is for this node, so consume it rather than forward it
             print 'I am the destination!'
             self.process_viro_packet(packet)
             return
 
-        # get next_hop and port
-        next_hop, port = self.viro.get_next_hop(packet)
-        if (next_hop != ''):
-            msg = self.create_openflow_message(of.OFPP_IN_PORT, FAKE_SRC_MAC, packet, int(port))
-            self.connection.send(msg)
+        op_code = get_operation(packet)
+        if op_code == OP_CODES['VIRO_DATA_OP']:
+            self.route_viro_packet_via_forwarding_directive(self, packet)
         else:
-            print "Next hop is none"
+            print "Using single-path routing for", get_operation_name(op_code), "packet"
+            self.route_viro_packet_via_default_path(self, packet)
+
+    def route_viro_packet_via_forwarding_directive(self, packet):
+        packet_fields = decode_viro_data_packet_contents(packet, L)
+        print "Decoded VIRO_DATA_OP packet:", packet_fields
+        ttl = packet_fields['ttl']
+        if ttl < 1:
+            print "TTL expired: dropping data packet"
+            return
+        # Decrease the TTL to ensure that the packet won't get stuck forever in a routing loop
+        ttl -= 1
+
+        dst_vid = packet_fields['dst_vid']
+        fwd_vid = packet_fields['fwd_vid']
+        if fwd_vid == self.vid:
+            # We are the node that the sender selected in its forwarding directive
+            # so now we need to select a new gateway to use instead.
+            # Since we look through the routing table to pick a random gateway we go ahead
+            # and grab the next hop and port rather than looking them up
+            try:
+                fwd_vid, next_hop, port = self.viro.choose_gateway_for_forwarding_directive(dst_vid)
+            except:
+                next_hop = ''
+        else:
+            # Don't need to change forwarding directive, but do need to find next hop from routing table
+            # for the forwarding directive that was already specified
+            next_hop, port = self.viro.get_next_hop(dst_vid)
+
+        # Now send the packet to the next hop associated with the VID in the forwarding directive
+        if next_hop != '':
+            # We could just modify the field in the original packet then send but
+            # since the packed format makes that inconvenient here
+            # we just create a new packet with the updated values instead.
+            src_vid = packet_fields['src_vid']
+            payload = packet_fields['payload']
+            packet = create_VIRO_DATA(src_vid, dst_vid, fwd_vid, ttl, payload)
+            self.send_packet_out_port(packet, port)
+        else:
+            print "No next hop found, so cannot route packet (using forwarding directive)"
+
+
+    def route_viro_packet_via_default_path(self, packet):
+        # get next_hop and port
+        dst_vid = get_dest(packet, L)
+        packet_type = get_operation(packet)
+        is_query_or_publish = packet_type == OP_CODES['RDV_PUBLISH'] or packet_type == OP_CODES['RDV_QUERY']
+        next_hop, port = self.viro.get_next_hop(dst_vid, is_query_or_publish)
+        if next_hop != '':
+            self.send_packet_out_port(packet, port)
+        else:
+            print "No next hop found, so cannot route packet (using default/single path)"
+
+    def send_packet_out_port(self, packet, port):
+        msg = self.create_openflow_message(of.OFPP_IN_PORT, FAKE_SRC_MAC, packet, int(port))
+        self.connection.send(msg)

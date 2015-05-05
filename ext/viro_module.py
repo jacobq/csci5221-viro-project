@@ -1,6 +1,6 @@
 import socket, struct, sys, time, random
 
-from viro_veil import *  # for the constants
+from viro_veil import *
 
 
 class ViroModule(object):
@@ -8,11 +8,10 @@ class ViroModule(object):
         self.dpid = my_dpid
         self.vid = my_vid
         self.L = len(my_vid)
-        self.routing_table = {}
-        self.rdv_store = {}
         self.neighbors = {}
+        self.rdv_store = {}
         self.rdv_request_tracker = {}
-
+        self.routing_table = {}
 
     def update_routing_table_based_on_neighbor(self, neighbor_vid, port):
         print "update_routing_table_based_on_neighbor: neighbor_vid =", neighbor_vid, "port =", port
@@ -100,13 +99,10 @@ class ViroModule(object):
             print "WARNING: Recursively calling recalculate_default_gw_for_bucket; unexpected situation"
             self.recalculate_default_gw_for_bucket(bucket)
 
-
-
     def update_neighbors(self, neighbor_vid, distance):
         if neighbor_vid not in self.neighbors:
             self.neighbors[neighbor_vid] = {}
         self.neighbors[neighbor_vid][distance] = time.time()
-
 
     def print_routing_table(self):
         print '\n----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
@@ -122,7 +118,6 @@ class ViroModule(object):
             else:
                 print 'Bucket:', distance, '--- E M P T Y ---'
         print 'RDV STORE: ', self.rdv_store, "\n"
-
 
     def remove_failed_gw(self, packet, gw=None):
         if gw is None:
@@ -153,14 +148,12 @@ class ViroModule(object):
 
         return
 
-
     def publish(self, bucket, k):
         dst = get_rdv_id(k, self.vid)
         packet = create_RDV_PUBLISH(bucket, self.vid, dst)
 
         print 'Node:', self.vid, 'is publishing neighbor', bin2str(bucket['next_hop'], self.L), 'to rdv:', dst
         return (packet, dst)
-
 
     def withdraw(self, failedNode, RDV_level):
         dst = get_rdv_id(RDV_level, self.vid)
@@ -170,7 +163,6 @@ class ViroModule(object):
 
             return packet
 
-
     # FIXME: Not used?
     def withdraw_gw(self, failed_gw, vid, dst):
         print "Creating GW_WITHDRAW packet"
@@ -179,7 +171,6 @@ class ViroModule(object):
         print self.vid, '- RDV gateway withdraw:', failed_gw, 'to dst:', dst
         return packet
 
-
     def query(self, k):
         dst = get_rdv_id(k, self.vid)
         packet = create_RDV_QUERY(k, self.vid, dst)
@@ -187,11 +178,8 @@ class ViroModule(object):
         print 'Node:', self.vid, 'is querying to reach bucket:', k, 'to rdv:', dst
         return (packet, dst)
 
-
-    def get_next_hop(self, packet):
-        dst_vid = get_dest(packet, self.L)
+    def get_next_hop(self, dst_vid, is_query_or_publish=False):
         next_hop = ''
-        packet_type = get_operation(packet)
         port = ''
 
         while next_hop == '':
@@ -208,7 +196,8 @@ class ViroModule(object):
             if next_hop != '':
                 break
 
-            if (packet_type != OP_CODES['RDV_PUBLISH']) and (packet_type != OP_CODES['RDV_QUERY']):
+            # TODO: This code "smells" bad -- not sure if it's even doing anything important/correct
+            if not is_query_or_publish:
                 break
 
             print 'No next hop for destination: ', dst_vid, 'distance: ', distance
@@ -220,8 +209,7 @@ class ViroModule(object):
             print 'No route to destination', 'MyVID: ', self.vid, 'DEST: ', dst_vid
             return ('', '')
 
-        return (next_hop, port)
-
+        return next_hop, port
 
     # Adds an entry to rdv_store, and also ensures that there are no duplicates
     def add_if_no_duplicate_rdv_entry(self, distance, new_entry):
@@ -230,14 +218,12 @@ class ViroModule(object):
                 return
         self.rdv_store[distance].append(new_entry)
 
-
     # Adds an entry to rdv_store, and also ensures that there are no duplicates
     def add_if_no_duplicate_gw_entry(self, gw, new_entry):
         for x in self.rdv_request_tracker[gw]:
             if x == new_entry:
                 return
         self.rdv_request_tracker[gw].append(new_entry)
-
 
     def process_rdv_publish(self, packet):
         src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
@@ -251,7 +237,6 @@ class ViroModule(object):
 
         new_entry = [src_vid, next_hop]
         self.add_if_no_duplicate_rdv_entry(distance, new_entry)
-
 
     def process_rdv_query(self, packet):
         src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
@@ -284,7 +269,6 @@ class ViroModule(object):
             self.add_if_no_duplicate_gw_entry(gw_str, src_vid)
 
         return reply_packet
-
 
     def process_self_rdv_query(self, packet):
         src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
@@ -319,7 +303,6 @@ class ViroModule(object):
             self.routing_table[k].append(bucket_info)
             self.recalculate_default_gw_for_bucket(k)
 
-
     def find_gateways_in_rdv_store(self, k, src_vid):
         gw_list = []
         if k not in self.rdv_store:
@@ -342,7 +325,6 @@ class ViroModule(object):
         # Remove the distance information from the list so it's a list of VIDs again instead of a list of dictionaries
         gw_list = map(lambda x: x['gw_vid'], gw_list)
         return gw_list
-
 
     def process_rdv_reply(self, packet):
         # Fill my routing table using this new information
@@ -387,6 +369,20 @@ class ViroModule(object):
 
         return (next_hop, port)
 
+    # Selects random entry from appropriate level bucket/entry in the routing table
+    # Returns gateway, next hop, and port
+    def choose_gateway_for_forwarding_directive(self, dst_vid):
+        distance = delta(dst_vid, self.vid)
+        if distance in self.routing_table:
+            entries = self.routing_table[distance]
+            random_index = random.randomrange(0, len(entries) - 1)
+            selected_entry = entries[random_index]
+            print "Selected (random) gateway for forwarding directive:", selected_entry
+            return selected_entry['gateway'], selected_entry['next_hop'], selected_entry['port']
+        else:
+            print "Could not find a gateway for distance =", distance, "for dst_vid=", dst_vid
+            raise RuntimeError("No suitable gateway found for level " + str(distance))
+
     # FIXME: Not used?
     def process_rdv_withdraw(self, packet):
         print "WARNING: process_rdv_withdraw called but implementation not verified yet"
@@ -424,7 +420,6 @@ class ViroModule(object):
 
         return gw
 
-
     # TODO: Dead code -- may be incorrect
     def get_gw_list(self, next_hop):
         print 'FIXME: get_gw_list should not be called yet -- implementation may not be correct'
@@ -440,7 +435,6 @@ class ViroModule(object):
                 gw_list.append(gw)
 
         return gw_list
-
 
     # Returns a dictionary that is like a copy of the routing table except:
     # - There is exactly 1 entry for each bucket

@@ -41,6 +41,7 @@ class ViroController(object):
         core.openflow.addListeners(self)
         self.transparent = transparent
 
+
     def _handle_ConnectionUp(self, event):
         log.debug("Connection %s" % (event.connection))
 
@@ -51,8 +52,10 @@ class ViroController(object):
 
         print "Starting Neighbor Discovery ...."
         Timer(DISCOVER_TIME, self.discover_neighbors, args=[event], recurring=True)
-        Timer(ROUND_TIME, self.viro_switch.start_round, recurring=True)
         Timer(FAILURE_TIME, self.discover_failures, recurring=True)
+        Timer(ROUND_TIME, self.viro_switch.start_round, recurring=True)
+        Timer(ROUTING_DEMO_PACKET_TIME, self.viro_switch.send_sample_viro_data, recurring=True)
+
 
     def get_vid_from_dpid(self, dpid):
         # To convert a dpid string (assumed to be formatted like a MAC address: xx-xx-xx-xx-xx-xx)
@@ -65,7 +68,7 @@ class ViroController(object):
         #   5. Zero-pad the result to L bits
         return format(int(dpid.replace('-', ''), 16) - 1, 'b').zfill(L)
 
-    def discover_neighbors(self, event): # TODO: Check caller signatures
+    def discover_neighbors(self, event):
         try:
             r = create_DISCOVER_ECHO_REQUEST(self.vid, self.dpid)
             msg = self.viro_switch.create_openflow_message(of.OFPP_FLOOD, FAKE_SRC_MAC, r, None)

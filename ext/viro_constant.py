@@ -2,7 +2,7 @@
 L = 4
 
 # OpenFlow Ethernet Frame type codes (dl_type)
-VIRO_DATA =    0x0802   # See ../pox/lib/packet/ethernet.py
+VIRO_DATA =    0x0802   # See ../pox/lib/packet/ethernet.py: VIRO_TYPE = 0x0802
 VIRO_CONTROL = 0x0803
 
 OP_NAMES = {
@@ -26,7 +26,7 @@ HTYPE = 0x1
 PTYPE = 0x0800
 HLEN = 0x06
 PLEN = 0x04
-
+MAX_TTL = 0x10  # 16 hops ought to be more than enough since that's every node in the example topology!
 
 # Per the CSCI 5221 Project 2 assignment document:
 # "We limit the maximal number of < Gateway; Nexthop > pairs in each level to 3."
@@ -55,8 +55,7 @@ ECHO_SRC_OFFSET = 8
 
 
 # The following _TIME parameter are all measured in seconds
-ROUND_TIME = 10     # Time between "bottom up" rounds for routing table construction (RDV_PUBLISH / RDV_QUERY)
-DISCOVER_TIME = 5   # Time between checking neighbor status
-FAILURE_TIME = 7    # Time between checks for failures
-
-
+ROUND_TIME = 10              # Time between "bottom up" rounds for routing table construction (RDV_PUBLISH / RDV_QUERY)
+DISCOVER_TIME = 5            # Time between checking neighbor status
+FAILURE_TIME = 7             # Time between checks for failures
+ROUTING_DEMO_PACKET_TIME = 2 # Time between sending sample VIRO_DATA packets to demonstrate routing functionality
