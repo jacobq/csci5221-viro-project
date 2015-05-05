@@ -369,7 +369,8 @@ class ViroModule(object):
         return (next_hop, port)
 
     # Selects random entry from appropriate level bucket/entry in the routing table
-    # Returns gateway, next hop, and port
+    # Returns gateway and next hop as strings of '0's and '1's
+    # and port as an integer
     def choose_gateway_for_forwarding_directive(self, dst_vid):
         print "Choosing gateway to use as forwarding directive for dst_vid =", dst_vid
         distance = delta(dst_vid, self.vid)
@@ -380,7 +381,9 @@ class ViroModule(object):
             random_index = random.randrange(0, len(entries))
             selected_entry = entries[random_index]
             print "Selected (random) gateway for forwarding directive:", selected_entry
-            return selected_entry['gateway'], selected_entry['next_hop'], selected_entry['port']
+            return bin2str(selected_entry['gateway'], L),\
+                   bin2str(selected_entry['next_hop'], L),\
+                   selected_entry['port']
         else:
             print "Could not find a gateway for distance =", distance, "for dst_vid=", dst_vid
             return None, None, None
