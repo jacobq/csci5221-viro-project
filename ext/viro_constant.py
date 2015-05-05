@@ -26,7 +26,7 @@ HTYPE = 0x1
 PTYPE = 0x0800
 HLEN = 0x06
 PLEN = 0x04
-MAX_TTL = 0x10  # 16 hops ought to be more than enough since that's every node in the example topology!
+MAX_TTL = 16  # 16 hops ought to be more than enough since that's every node in the example topology!
 
 # Per the CSCI 5221 Project 2 assignment document:
 # "We limit the maximal number of < Gateway; Nexthop > pairs in each level to 3."

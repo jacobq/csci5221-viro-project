@@ -40,7 +40,7 @@ class ViroSwitch(object):
                 if (packet_type == VIRO_CONTROL):
                     self.process_viro_packet(my_packet, match, event)  # handling the VIRO REQUEST
                     return
-        except Exception as exception:
+        except Exception:
             print "Error while processing packet"
             print traceback.format_exc()
 
@@ -177,15 +177,19 @@ class ViroSwitch(object):
     # that doesn't have any meaning in this simple demonstration except to distinguish / identify it
     # it in the switches log messages.
     def send_sample_viro_data(self):
-        src_vid = self.vid
-        dst_vid = self.demo_packet_sequence[self.demo_sequence_number % len(self.demo_packet_sequence)]
-        # Start with our own VID as the forwarding directive and let the routing function
-        # select an appropriate forwarding directive
-        fwd_vid = src_vid
-        self.demo_sequence_number += 1
-        payload = bin(self.demo_sequence_number % 2**32).replace("0b", "")
-        packet = create_VIRO_DATA(src_vid, dst_vid, fwd_vid, MAX_TTL, payload)
-        self.process_viro_packet(packet)
+        try:
+            src_vid = self.vid
+            dst_vid = self.demo_packet_sequence[self.demo_sequence_number % len(self.demo_packet_sequence)]
+            # Start with our own VID as the forwarding directive and let the routing function
+            # select an appropriate forwarding directive
+            fwd_vid = src_vid
+            self.demo_sequence_number += 1
+            payload = bin(self.demo_sequence_number % 2**32).replace("0b", "")
+            packet = create_VIRO_DATA(src_vid, dst_vid, fwd_vid, MAX_TTL, payload)
+            self.process_viro_packet(packet)
+        except:
+            print "ERROR: send_sample_viro_data encountered exception"
+            print traceback.format_exc()
 
     # If this packet is destined for us then process it.
     # Otherwise, if it's a "data packet" then route it using multi-path routing.
@@ -204,10 +208,10 @@ class ViroSwitch(object):
 
         op_code = get_operation(packet)
         if op_code == OP_CODES['VIRO_DATA_OP']:
-            self.route_viro_packet_via_forwarding_directive(self, packet)
+            self.route_viro_packet_via_forwarding_directive(packet)
         else:
             print "Using single-path routing for", get_operation_name(op_code), "packet"
-            self.route_viro_packet_via_default_path(self, packet)
+            self.route_viro_packet_via_default_path(packet)
 
     def route_viro_packet_via_forwarding_directive(self, packet):
         packet_fields = decode_viro_data_packet_contents(packet, L)

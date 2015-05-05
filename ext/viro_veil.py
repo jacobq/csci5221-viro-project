@@ -136,15 +136,15 @@ def create_DISCOVER_ECHO_REPLY(vid, dpid):
 # are already listed in the arguments.
 # Note that "fwd" and "res" are unrelated & outside the scope of this project
 # (Guobao said to leave them in place as they're for POX / Open vSwitch, so I will)
-# Arguments are strings of '0's and '1's
+# ttl is an integer, and all other arguments are strings of '0's and '1's
 def create_VIRO_DATA(src_vid, dst_vid, fwd_vid, ttl, payload):
     fwd = struct.pack('!I', int(dst_vid, 2))
     res = struct.pack('!HH', 0x0000, VIRO_CONTROL)
     src_vid_packed = struct.pack("!I", int(src_vid, 2))
     dst_vid_packed = struct.pack("!I", int(dst_vid, 2))
     fwd_vid_packed = struct.pack("!I", int(fwd_vid, 2))    # FWD-VID: forwarding directive
-    ttl_and_padding = struct.pack("!BBH", int(ttl, 2), 0, 0)
-    payload_packed = struct.pack("!I", payload)
+    ttl_and_padding = struct.pack("!BBH", ttl, 0, 0)
+    payload_packed = struct.pack("!I", int(payload, 2))    # Assume for now that payload is just an integer
     return fwd + res + pack_header(OP_CODES['VIRO_DATA_OP']) +\
            src_vid_packed + dst_vid_packed + fwd_vid_packed +\
            ttl_and_padding + payload_packed
