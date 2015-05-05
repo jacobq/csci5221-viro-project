@@ -217,12 +217,12 @@ def decode_discovery_packet(packet, L, dpid_length):
 def decode_viro_data_packet_contents(packet, L):
     try:
         # Ignore encapsulating header bytes 0-15
-        src_vid = struct.unpack("!I", packet[16:20])
-        dst_vid = struct.unpack("!I", packet[20:24])
-        fwd_vid = struct.unpack("!I", packet[24:28])
-        ttl = struct.unpack("!B", packet[28:29])
+        [src_vid] = struct.unpack("!I", packet[16:20])
+        [dst_vid] = struct.unpack("!I", packet[20:24])
+        [fwd_vid] = struct.unpack("!I", packet[24:28])
+        [ttl] = struct.unpack("!B", packet[28:29])
         # Ignore padding bytes 29-31
-        payload = struct.unpack("!I", packet[32:36])
+        [payload] = struct.unpack("!I", packet[32:36])
         return {
             'src_vid': bin2str(src_vid, L),
             'dst_vid': bin2str(dst_vid, L),
