@@ -162,7 +162,7 @@ class ViroSwitch(object):
     # a set of VIDs that will be used for sending sample data packets for routing demonstration
     def generate_demo_packet_sequence(self):
         vid_sequence = []
-        for vid in range(0, 2**L - 1):
+        for vid in range(0, 2**L):
             vid_sequence.append(bin2str(vid, L))
         print "Created demo/sample sequence of VIDs to send VIRO data packets to:", vid_sequence
         return vid_sequence
