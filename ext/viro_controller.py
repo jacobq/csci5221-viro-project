@@ -19,6 +19,8 @@
 An L2 viro POX controller.
 """
 
+import traceback
+
 from pox.core import core
 import pox.openflow.libopenflow_01 as of
 from pox.lib.util import *
@@ -31,7 +33,6 @@ from viro_veil import *
 
 log = core.getLogger()
 
-
 class ViroController(object):
     """
     Waits for OpenFlow switches to connect.
@@ -41,7 +42,7 @@ class ViroController(object):
         core.openflow.addListeners(self)
         self.transparent = transparent
 
-
+    # Runs when the switch/controller is started (not when a link comes up!)
     def _handle_ConnectionUp(self, event):
         log.debug("Connection %s" % (event.connection))
 
@@ -50,12 +51,11 @@ class ViroController(object):
         self.viro = ViroModule(self.dpid, self.vid)
         self.viro_switch = ViroSwitch(event.connection, self.transparent, self.viro)
 
-        print "Starting Neighbor Discovery ...."
+        log.debug("Starting periodic tasks (recurring timers)")
         Timer(DISCOVER_TIME, self.discover_neighbors, args=[event], recurring=True)
         Timer(FAILURE_TIME, self.discover_failures, recurring=True)
         Timer(ROUND_TIME, self.viro_switch.start_round, recurring=True)
         Timer(ROUTING_DEMO_PACKET_TIME, self.viro_switch.send_sample_viro_data, recurring=True)
-
 
     def get_vid_from_dpid(self, dpid):
         # To convert a dpid string (assumed to be formatted like a MAC address: xx-xx-xx-xx-xx-xx)
@@ -76,14 +76,13 @@ class ViroController(object):
             print "Sending neighbor discovery packets"
 
         except:
-            print "Error .... not able to send discovery packets"
-
+            print "Error during neighbor discovery. Not able to send discovery packets?"
+            print traceback.format_exc()
 
     def discover_failures(self):
         # This is the function handling failure events
         # Random code, delete this when you are doing it.
         csci = 5221
-
 
 def launch(transparent=False):
     """

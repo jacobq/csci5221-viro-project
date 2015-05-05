@@ -117,19 +117,17 @@ class ViroSwitch(object):
         # composing openFlow message
         msg = of.ofp_packet_out()
         msg.data = e.pack()
-        msg.actions.append(
-            of.ofp_action_output(port=openflow_port))  # send the message to the same port as the openflow port
+        # send the message to the same port as the openflow port
+        msg.actions.append(of.ofp_action_output(port=openflow_port))
 
-        if (event_port != None):
+        if (event_port is not None):
             msg.in_port = event_port
         return msg
 
     def start_round(self):
         print "vid", self.vid, 'starting round: ', self.round
-
         self.run_round(self.round)
-
-        # Advance to next round, if not already at final round (L)
+        # Advance to next round (for next time), if not already at final round (L)
         L = len(self.vid)
         self.round += 1
         if self.round > L:
@@ -164,7 +162,7 @@ class ViroSwitch(object):
         vid_sequence = []
         for vid in range(0, 2**L):
             vid_sequence.append(bin2str(vid, L))
-        print "Created demo/sample sequence of VIDs to send VIRO data packets to:", vid_sequence
+        # print "Created demo/sample sequence of VIDs to send VIRO data packets to:", vid_sequence
         return vid_sequence
 
     # This function gets called periodically by a timer
@@ -243,7 +241,6 @@ class ViroSwitch(object):
             self.send_packet_out_port(packet, port)
         else:
             print "No next hop found, so cannot route packet (using forwarding directive)"
-
 
     def route_viro_packet_via_default_path(self, packet):
         # get next_hop and port
