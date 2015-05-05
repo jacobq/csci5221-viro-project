@@ -297,6 +297,8 @@ def print_packet(packet, L, verbose=False):
             print 'PLEN:', plen
 
     if (len(packet) >= 16):
+        # Could use get_operation(packet) here instead if we wanted to have better code reuse...
+        # ...but this is just for debugging
         [op_code] = struct.unpack("!H", packet[14:16])
         print 'Type:', get_operation_name(op_code)
 

@@ -32,7 +32,6 @@ class ViroSwitch(object):
         try:
             if match.dl_type == packet.VIRO_TYPE:
 
-                print  "VIRO packet received....."
                 payload = packet.payload
                 my_packet = payload
                 [packet_type] = struct.unpack("!H", my_packet[6:8])
@@ -40,13 +39,15 @@ class ViroSwitch(object):
                 if (packet_type == VIRO_CONTROL):
                     self.process_viro_packet(my_packet, match, event)  # handling the VIRO REQUEST
                     return
+                else:
+                    print  "Ignoring packet since packet_type was not VIRO_CONTROL"
         except Exception:
             print "Error while processing packet"
             print traceback.format_exc()
 
     def process_viro_packet(self, packet, match=None, event=None):
         L = len(self.vid)
-        print_packet(packet, L, True)
+        # print_packet(packet, L, True)
         dpid_length = get_dpid_length(self.dpid)
 
         op_code = get_op_code(packet)
@@ -62,18 +63,16 @@ class ViroSwitch(object):
             self.connection.send(msg)
             # print "Neighbor discovery reply message sent"
 
-
         elif op_code == OP_CODES['DISCOVERY_ECHO_REPLY']:
             packet_fields = decode_discovery_packet(packet, L, dpid_length)
             neighbor_vid = packet_fields['sender_vid']
             neighbor_port = event.port
-            # print "Neighbor discovery reply message received from vid: ", neighbor_vid, "port:", neighbor_port
+            print "Neighbor discovery reply message received from vid: ", neighbor_vid, "port:", neighbor_port
 
             # Update routing table with this (possibly new) neighbors
             self.viro.update_routing_table_based_on_neighbor(neighbor_vid, neighbor_port)
 
         else:
-            # print_packet(packet, L)
             dst_vid = get_dest(packet, L)
             src_vid = get_src(packet, L)
 
@@ -101,15 +100,12 @@ class ViroSwitch(object):
             elif op_code == OP_CODES['RDV_PUBLISH']:
                 self.viro.process_rdv_publish(packet)
 
-
             elif op_code == OP_CODES['RDV_REPLY']:
-
-                print "RDV_REPLY message received"
                 self.viro.process_rdv_reply(packet)
 
             elif op_code == OP_CODES['VIRO_DATA_OP']:
                 # The part where it handles VIRO data packet (by printing it then dropping it)
-                print "Received a VIRO Data Packet:", decode_viro_data_packet_contents(packet, L)
+                print "Received a VIRO data packet:", decode_viro_data_packet_contents(packet, L)
 
     def create_openflow_message(self, openflow_port, mac, packet, event_port=None):
         # encapsulating the VIRO packet into an ethernet frame

@@ -46,7 +46,8 @@ VEIL_MASTER_MAC = '00:00:00:00:00:00'
 
 
 # OFFSET FOR THE OPER
-OPER_OFFSET = 6
+# Account for extra 8 bytes stuffed in front (fwd + res + dl_type) whose meaning is beyond the scope of this assignment
+OPER_OFFSET = 8 + 6
 OPER_LEN = 2
 
 
