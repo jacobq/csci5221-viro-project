@@ -19,7 +19,7 @@ class ViroSwitch(object):
 
         # Statistics for performance / verification report
         self.switch_stats = {}
-        for op_name in OP_NAMES:
+        for op_name in OP_NAMES.keys():
             self.switch_stats[op_name] = {
                 'sent': 0,
                 'processed': 0,
