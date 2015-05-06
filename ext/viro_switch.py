@@ -17,6 +17,23 @@ class ViroSwitch(object):
         self.demo_packet_sequence = self.generate_demo_packet_sequence()
         self.demo_sequence_number = 0
 
+        # Statistics for performance / verification report
+        self.switch_stats = {}
+        for op_name in OP_NAMES:
+            self.switch_stats[op_name] = {
+                'sent': 0,
+                'processed': 0,
+                'received': 0
+            }
+
+        # When receiving VIRO data packets we can peek at the TTL
+        # and determine the number of hops used since we know the
+        # initial TTL
+        self.switch_stats['VIRO_DATA_OP']['total_ttl'] = 0
+        # Also track how many we've created from here
+        self.switch_stats['VIRO_DATA_OP']['originated'] = 0
+
+
         # We want to hear PacketIn messages, so we listen
         connection.addListeners(self)
 
@@ -38,6 +55,8 @@ class ViroSwitch(object):
 
                 if (packet_type == VIRO_CONTROL):
                     self.process_viro_packet(my_packet, match, event)  # handling the VIRO REQUEST
+                    op_code = get_operation(my_packet)
+                    self.switch_stats[get_operation_name(op_code)]['received'] += 1
                     return
                 else:
                     print  "Ignoring packet since packet_type was not VIRO_CONTROL"
@@ -63,6 +82,8 @@ class ViroSwitch(object):
         dpid_length = get_dpid_length(self.dpid)
 
         op_code = get_op_code(packet)
+
+        self.switch_stats[get_operation_name(op_code)]['processed'] += 1
 
         if op_code == OP_CODES['DISCOVERY_ECHO_REQUEST']:
             packet_fields = decode_discovery_packet(packet, L, dpid_length)
@@ -116,7 +137,17 @@ class ViroSwitch(object):
 
             elif op_code == OP_CODES['VIRO_DATA_OP']:
                 # The part where it handles VIRO data packet (by printing it then dropping it)
-                print "Received a VIRO data packet:", decode_viro_data_packet_contents(packet, L)
+                contents = decode_viro_data_packet_contents(packet, L)
+                print "Received a VIRO data packet:", contents
+                stats = self.switch_stats['VIRO_DATA_OP']
+                if self.switch_stats['VIRO_DATA_OP'] is None:
+                    self.switch_stats['VIRO_DATA_OP'] = {
+                        'consumed': 0,
+                        'sent': 0
+                    }
+                    self.switch_stats['VIRO_DATA_OP'] = 0
+                self.switch_stats['VIRO_DATA_OP'] += 1
+
 
     def create_openflow_message(self, openflow_port, mac, packet, event_port=None):
         # encapsulating the VIRO packet into an ethernet frame
@@ -192,6 +223,7 @@ class ViroSwitch(object):
             payload = bin(self.demo_sequence_number % 2**32).replace("0b", "")
             packet = create_VIRO_DATA(src_vid, dst_vid, fwd_vid, MAX_TTL, payload)
             self.process_viro_packet(packet)
+            self.switch_stats['VIRO_DATA_OP']['originated'] += 1
         except:
             print "ERROR: send_sample_viro_data encountered exception"
             print traceback.format_exc()
@@ -266,4 +298,22 @@ class ViroSwitch(object):
 
     def send_packet_out_port(self, packet, port):
         msg = self.create_openflow_message(of.OFPP_IN_PORT, FAKE_SRC_MAC, packet, int(port))
+        op_code = get_operation(packet)
+        self.switch_stats[get_operation_name(op_code)]['sent'] += 1
         self.connection.send(msg)
+
+    # Called periodically
+    def print_switch_stats(self):
+        try:
+            print '\n---- Statistics for:', self.vid, '|', self.dpid, ' ----'
+            for op_name, stats in self.switch_stats.items():
+                print op_name
+                for stat_name, stat_value in stats.items():
+                    if stat_name == "total_ttl":
+                        print "   Average hops:", stat_value/stats['received'] - MAX_TTL
+                    else:
+                        print "   ", stat_name, ":", stat_value
+            print '\n'
+        except:
+            print "ERROR: caught exception while trying to print switch statistics"
+            print traceback.format_exc()

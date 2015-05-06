@@ -59,5 +59,6 @@ ECHO_SRC_OFFSET = 8
 ROUND_TIME = 10              # Time between "bottom up" rounds for routing table construction (RDV_PUBLISH / RDV_QUERY)
 DISCOVER_TIME = 5            # Time between checking neighbor status
 FAILURE_TIME = 7             # Time between checks for failures
+PRINT_REPORT_TIME = 20       # Time between printing statistics report
 ROUTING_DEMO_PACKET_TIME = 2 # Time between sending sample VIRO_DATA packets to demonstrate routing functionality
 NEIGHBOR_EXPIRATION_TIME = 3*DISCOVER_TIME # Neighbor entries older than this will be removed

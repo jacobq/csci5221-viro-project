@@ -56,6 +56,7 @@ class ViroController(object):
         Timer(FAILURE_TIME, self.discover_failures, recurring=True)
         Timer(ROUND_TIME, self.viro_switch.start_round, recurring=True)
         Timer(ROUTING_DEMO_PACKET_TIME, self.viro_switch.send_sample_viro_data, recurring=True)
+        Timer(PRINT_REPORT_TIME, self.viro_switch.print_switch_stats(), recurring=True)
 
     def get_vid_from_dpid(self, dpid):
         # To convert a dpid string (assumed to be formatted like a MAC address: xx-xx-xx-xx-xx-xx)
