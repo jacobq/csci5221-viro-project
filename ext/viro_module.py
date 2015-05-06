@@ -104,6 +104,9 @@ class ViroModule(object):
             self.neighbors[neighbor_vid] = {}
         self.neighbors[neighbor_vid][distance] = time.time()
 
+    # Note: routing_table is a dictionary of k -> entries_list
+    # where entries_list is a list of dictionaries
+    # e.g. { 1: [{'gateway': ...}, {'gateway': ...}, ...], ...}
     def print_routing_table(self):
         print '\n----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
         for distance in range(1, self.L + 1):
@@ -118,6 +121,41 @@ class ViroModule(object):
             else:
                 print 'Bucket:', distance, '--- E M P T Y ---'
         print 'RDV STORE: ', self.rdv_store, "\n"
+
+    # This function reviews all the entries in the neighbor list and removes
+    # entries that are expired (older than NEIGHBOR_EXPIRATION_TIME seconds)
+    # It then calls remove_failed_next_hops_from_routing_table
+    def remove_expired_neighbors(self):
+        print "Now checking to see if any local links / neighbors have gone down"
+        now = time.time()
+        to_be_deleted = []
+        for neighbor_vid, k_to_time in self.neighbors.items():
+            for k, time_last_seen in k_to_time.items():
+                delta_t = now - time_last_seen
+                if delta_t >= NEIGHBOR_EXPIRATION_TIME:
+                    print "Going to remove stale entry for neighbor", neighbor_vid, "at distance", k, "since delta_t =", delta_t
+                    to_be_deleted.append({'vid': neighbor_vid, 'distance':k})
+                else:
+                    print "Keeping entry for neighbor", neighbor_vid, "at distance", k, "since delta_t =", delta_t
+
+        self.remove_failed_next_hops_from_routing_table(to_be_deleted)
+        # send RDV_WITHDRAW packets?
+        for neighbor in to_be_deleted:
+            del self.neighbors[neighbor['vid']][neighbor['distance']]
+
+    def remove_failed_next_hops_from_routing_table(self, failed_next_hops):
+        if len(failed_next_hops) < 1:
+            print "No failed next hop entries to remove"
+            return
+
+        print "Now removing entries for failed next hops in routing table"
+        for k, entries in self.routing_table.items():
+            for entry_key, entry in enumerate(entries):
+                next_hop = bin2str(entry['next_hop'], self.L)
+                if next_hop not in self.neighbors or k not in self.neighbors[next_hop]:
+                    print "Removing entry from routing table:", entry
+                    del entries[entry_key]
+                    self.recalculate_default_gw_for_bucket(k)
 
     def remove_failed_gw(self, packet, gw=None):
         if gw is None:

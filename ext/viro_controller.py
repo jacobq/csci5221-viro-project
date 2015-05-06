@@ -76,13 +76,15 @@ class ViroController(object):
             print "Sending neighbor discovery packets"
 
         except:
-            print "Error during neighbor discovery. Not able to send discovery packets?"
+            print "ERROR: caught exception during neighbor discovery. Not able to send discovery packets?"
             print traceback.format_exc()
 
     def discover_failures(self):
-        # This is the function handling failure events
-        # Random code, delete this when you are doing it.
-        csci = 5221
+        try:
+            self.viro.remove_expired_neighbors()
+        except:
+            print "ERROR: Caught exception during discover_failures"
+            print traceback.format_exc()
 
 def launch(transparent=False):
     """

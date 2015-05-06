@@ -60,3 +60,4 @@ ROUND_TIME = 10              # Time between "bottom up" rounds for routing table
 DISCOVER_TIME = 5            # Time between checking neighbor status
 FAILURE_TIME = 7             # Time between checks for failures
 ROUTING_DEMO_PACKET_TIME = 2 # Time between sending sample VIRO_DATA packets to demonstrate routing functionality
+NEIGHBOR_EXPIRATION_TIME = 3*DISCOVER_TIME # Neighbor entries older than this will be removed
