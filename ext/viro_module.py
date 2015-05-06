@@ -307,41 +307,6 @@ class ViroModule(object):
 
         return reply_packet
 
-    def process_self_rdv_query(self, packet):
-        src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
-        [k] = struct.unpack("!I", packet[24:28])
-
-        # search in rdv store for the logically closest gateway to reach kth distance away neighbor
-        gw_str_list = self.find_gateways_in_rdv_store(k, src_vid)
-
-        # if found then form the reply packet and send to src_vid
-        if len(gw_str_list) < 1:
-            # No gateway found
-            print 'Node:', self.vid, 'has no gateway for the rdv_query packet to reach bucket: ', k, 'for node: ', src_vid
-            return ''
-
-        for gw_str in gw_str_list:
-            if not k in self.routing_table:
-                self.routing_table[k] = []
-
-            next_hop, port = self.get_next_hop_rdv(gw_str)
-            if next_hop is None:
-                print 'No next_hop found for the gateway:', gw_str
-                print 'New routing information couldnt be added! '
-                return
-
-            # Destination Subtree-k
-            bucket_info = {
-                'prefix': get_prefix(self.vid, k),
-                'gateway': int(gw_str, 2),
-                'next_hop': int(next_hop, 2),
-                'port': port
-            }
-
-            if not is_duplicate_bucket(self.routing_table[k], bucket_info):
-                self.routing_table[k].append(bucket_info)
-                self.recalculate_default_gw_for_bucket(k)
-
     # k is an integer
     # src_vid is a string of '0's and '1's
     def find_gateways_in_rdv_store(self, k, src_vid):

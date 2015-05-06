@@ -83,19 +83,18 @@ class ViroSwitch(object):
 
             if op_code == OP_CODES['RDV_QUERY']:
                 print "RDV_QUERY message received"
-                if src_vid == self.vid:
-                    print "(processing my own RDV_QUERY)"
-                    self.viro.process_self_rdv_query(packet)
+                rvdReplyPacket = self.viro.process_rdv_query(packet)
+                if rvdReplyPacket == '':
                     return
 
+                if src_vid == self.vid:
+                    print "(processing my own RDV_REPLY)"
+                    self.viro.process_rdv_reply(rvdReplyPacket)
                 else:
-                    rvdReplyPacket = self.viro.process_rdv_query(packet)
-                    if (rvdReplyPacket == ''):
-                        return
-
                     msg = self.create_openflow_message(of.OFPP_IN_PORT, FAKE_SRC_MAC, rvdReplyPacket, event.port)
                     self.connection.send(msg)
-                    print "RDV_REPLY message sent"
+
+                print "RDV_REPLY message sent"
 
             elif op_code == OP_CODES['RDV_PUBLISH']:
                 self.viro.process_rdv_publish(packet)
