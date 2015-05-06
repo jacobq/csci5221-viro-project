@@ -29,9 +29,8 @@ class ViroSwitch(object):
         # When receiving VIRO data packets we can peek at the TTL
         # and determine the number of hops used since we know the
         # initial TTL
-        self.switch_stats['VIRO_DATA_OP']['total_hops'] = 0
-        # Also track how many we've created from here
-        self.switch_stats['VIRO_DATA_OP']['originated'] = 0
+        for field in ['total_hops', 'originated', 'consumed']:
+            self.switch_stats['VIRO_DATA_OP'][field] = 0
 
         # We want to hear PacketIn messages, so we listen
         connection.addListeners(self)
