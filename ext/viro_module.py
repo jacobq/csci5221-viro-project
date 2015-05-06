@@ -284,6 +284,7 @@ class ViroModule(object):
 
         # search in rdv store for the logically closest gateway to reach kth distance away neighbor
         gw_str_list = self.find_gateways_in_rdv_store(k, src_vid)
+        print "Got gw_str_list =", gw_str_list
 
         # if found then form the reply packet and send to src_vid
         if len(gw_str_list) < 1:
@@ -310,14 +311,23 @@ class ViroModule(object):
     # k is an integer
     # src_vid is a string of '0's and '1's
     def find_gateways_in_rdv_store(self, k, src_vid):
-        gw_list = []
+        gw_dist = {}
         if k not in self.rdv_store:
             return []
         # Look through rdv store for next_hop entries
+        # and build up a map/dictionary of gw_vid -> distance
+        # (this eliminates the need to remove duplicates,
+        # which might otherwise happen since a gateway may
+        # have several edges connecting to a node in other subtree)
         for t in self.rdv_store[k]:
             gw_vid = t[0]
             distance = delta(gw_vid, src_vid)
+            gw_dist[gw_vid] = distance
+
+        gw_list = []
+        for gw_vid, distance in gw_dist.items():
             gw_list.append({'gw_vid': gw_vid, 'distance': distance})
+
         if len(gw_list) < 1:
             return []
 
