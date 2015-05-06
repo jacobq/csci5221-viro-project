@@ -313,7 +313,7 @@ class ViroSwitch(object):
                         if consumed > 0:
                             print "    average_hops:", stat_value/consumed
                     else:
-                        print "   %s: %s" % (stat_name, stat_value)
+                        print "    %s: %s" % (stat_name, stat_value)
             print '\n'
         except:
             print "ERROR: caught exception while trying to print switch statistics"
