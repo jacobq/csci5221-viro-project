@@ -250,6 +250,21 @@ def delta(vid1, vid2):
     # print "Logical distance between ", vid1, "and", vid2, "is", distance
     return distance
 
+# XOR distance (for consistent gateway selection)
+def xor_distance(vid1, vid2):
+    L = len(vid1)
+    distance_str = ''
+    # most significant bit first
+    for i in range(0, L):
+        if vid1[i] == vid2[i]:
+            distance_str += '0'
+        else:
+            distance_str += '1'
+    distance = int(distance_str, 2)
+    # print "XOR distance between ", vid1, "and", vid2, "is", distance_str, distance
+    return distance
+
+
 ######################################
 # Debug functions
 def print_packet(packet, L, verbose=False):

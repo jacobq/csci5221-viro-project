@@ -42,6 +42,8 @@ class ViroModule(object):
     # so we need to do the following:
     # - (Re)compute the logical distance of each gateway
     # - Set a gateway having minimal distance to be the default (and all others not to be the default)
+    #   In this case we use XOR distance instead of just logical distance to break ties
+    #   and thus help ensure consistent gateway selection
     # - Limit the number of gateways stored to the maximum allowed
     #   as defined by MAX_GW_PER_LEVEL parameter (which is assumed to be > 1).
     #   To do that we remove a gateway whose distance is maximal,
@@ -59,7 +61,7 @@ class ViroModule(object):
 
             # Compute distance
             gw = bin2str(entry['gateway'], self.L)
-            distance = delta(gw, self.vid)
+            distance = xor_distance(gw, self.vid)
 
             # Update min/max pointers
             if distance > max_distance:
@@ -72,10 +74,6 @@ class ViroModule(object):
         if min_entry is None or max_entry is None:
             print "recalculate_default_gw_for_bucket did not find a min and max distance gateways (no gateways)"
             return
-
-        # DEBUG
-        # print "min_distance =", min_distance, "min_entry =", min_entry
-        # print "max_distance =", max_distance, "max_entry =", max_entry
 
         # Set (possibly new) default gateway for this bucket to be one having minimal distance
         min_entry['default'] = True
@@ -306,9 +304,11 @@ class ViroModule(object):
         # (this eliminates the need to remove duplicates,
         # which might otherwise happen since a gateway may
         # have several edges connecting to a node in other subtree)
+        # We use XOR distance here to consistently break ties
+        # between gateways having the same logical distance
         for t in self.rdv_store[k]:
             gw_vid = t[0]
-            distance = delta(gw_vid, src_vid)
+            distance = xor_distance(gw_vid, src_vid)
             gw_dist[gw_vid] = distance
 
         gw_list = []
