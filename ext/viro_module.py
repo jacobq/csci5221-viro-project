@@ -280,7 +280,7 @@ class ViroModule(object):
         for gw_str in gw_str_list:
             gw_list.append(int(gw_str,2))
 
-        # create a RDV_REPLY packet and send it
+        # create a RDV_REPLY packet that will be sent back
         reply_packet = create_RDV_REPLY(gw_list, k, self.vid, src_vid)
 
         # Keeps track of the Nodes that requests each Gateways at 

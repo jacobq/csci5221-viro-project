@@ -29,7 +29,7 @@ class ViroSwitch(object):
         # When receiving VIRO data packets we can peek at the TTL
         # and determine the number of hops used since we know the
         # initial TTL
-        for field in ['total_hops', 'originated', 'consumed']:
+        for field in ['total_hops', 'originated', 'consumed', 'ttl_expired']:
             self.switch_stats['VIRO_DATA_OP'][field] = 0
 
         # We want to hear PacketIn messages, so we listen
@@ -79,8 +79,7 @@ class ViroSwitch(object):
         # print_packet(packet, L, True)
         dpid_length = get_dpid_length(self.dpid)
 
-        op_code = get_op_code(packet)
-
+        op_code = get_operation(packet)
         self.switch_stats[get_operation_name(op_code)]['processed'] += 1
 
         if op_code == OP_CODES['DISCOVERY_ECHO_REQUEST']:
@@ -143,6 +142,11 @@ class ViroSwitch(object):
 
 
     def create_openflow_message(self, openflow_port, mac, packet, event_port=None):
+        # Track statistics on sent messages
+        # (assume that any message created using this function will be immediately sent)
+        op_code = get_operation(packet)
+        self.switch_stats[get_operation_name(op_code)]['sent'] += 1
+
         # encapsulating the VIRO packet into an ethernet frame
         # dst MAC defaults to ETHER_ANY = 00:00:00:00:00:00
         # (currently that's the same as VEIL_MASTER_MAC)
@@ -249,6 +253,7 @@ class ViroSwitch(object):
         ttl = packet_fields['ttl']
         if ttl < 1:
             print "TTL expired: dropping data packet"
+            self.switch_stats['VIRO_DATA_OP']['ttl_expired'] += 1
             return
         # Decrease the TTL to ensure that the packet won't get stuck forever in a routing loop
         ttl -= 1
@@ -281,8 +286,8 @@ class ViroSwitch(object):
     def route_viro_packet_via_default_path(self, packet):
         # get next_hop and port
         dst_vid = get_dest(packet, L)
-        packet_type = get_operation(packet)
-        is_query_or_publish = packet_type == OP_CODES['RDV_PUBLISH'] or packet_type == OP_CODES['RDV_QUERY']
+        op_code = get_operation(packet)
+        is_query_or_publish = op_code == OP_CODES['RDV_PUBLISH'] or op_code == OP_CODES['RDV_QUERY']
         next_hop, port = self.viro.get_next_hop(dst_vid, is_query_or_publish)
         if next_hop is not None:
             self.send_packet_out_port(packet, port)
@@ -291,23 +296,24 @@ class ViroSwitch(object):
 
     def send_packet_out_port(self, packet, port):
         msg = self.create_openflow_message(of.OFPP_IN_PORT, FAKE_SRC_MAC, packet, int(port))
-        op_code = get_operation(packet)
-        self.switch_stats[get_operation_name(op_code)]['sent'] += 1
         self.connection.send(msg)
 
-    # Called periodically
+    # Called periodically for performance | debugging information
     def print_switch_stats(self):
         try:
             print '\n---- Statistics for:', self.vid, '|', self.dpid, ' ----'
-            for op_name, stats in self.switch_stats.items():
+            # Sort operations
+            stats_items = self.switch_stats.items()
+            stats_items.sort(key=lambda x: x[0])
+            for op_name, stats in stats_items:
                 print op_name
                 for stat_name, stat_value in stats.items():
                     if stat_name == "total_hops":
                         consumed = stats['consumed']
                         if consumed > 0:
-                            print "   Average hop count for incoming packets:", stat_value/consumed
+                            print "    average_hops:", stat_value/consumed
                     else:
-                        print "   ", stat_name, ":", stat_value
+                        print "   %s: %s" % (stat_name, stat_value)
             print '\n'
         except:
             print "ERROR: caught exception while trying to print switch statistics"

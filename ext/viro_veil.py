@@ -75,11 +75,6 @@ def get_rdv_id(dist, vid):
     rdv_id = vid[:L - dist + 1]
     return rdv_id + hash_val(rdv_id, dist - 1)
 
-#  returns the op code type for a packet
-def get_op_code(packet):
-    [op_code] = struct.unpack("!H", packet[14:16])
-    return op_code
-
 # check if the bucket is already present in the set or not:
 def is_duplicate_bucket(bucket_list, new_bucket):
     is_duplicate = False
