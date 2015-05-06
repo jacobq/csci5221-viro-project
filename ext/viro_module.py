@@ -193,22 +193,6 @@ class ViroModule(object):
         print 'Node:', self.vid, 'is publishing neighbor', bin2str(bucket['next_hop'], self.L), 'to rdv:', dst
         return (packet, dst)
 
-    def withdraw(self, failedNode, RDV_level):
-        dst = get_rdv_id(RDV_level, self.vid)
-        if dst != failedNode:
-            packet = create_RDV_WITHDRAW(int(failedNode, 2), self.vid, '00')
-            print 'Node: ', self.vid, 'is withdrawing neighbor', failedNode, 'to rdv:', dst
-
-            return packet
-
-    # FIXME: Not used?
-    def withdraw_gw(self, failed_gw, vid, dst):
-        print "Creating GW_WITHDRAW packet"
-        packet = create_GW_WITHDRAW(failed_gw, vid, dst)
-
-        print self.vid, '- RDV gateway withdraw:', failed_gw, 'to dst:', dst
-        return packet
-
     def query(self, k):
         dst = get_rdv_id(k, self.vid)
         packet = create_RDV_QUERY(k, self.vid, dst)
@@ -409,79 +393,4 @@ class ViroModule(object):
         else:
             print "Could not find a gateway for distance =", distance, "for dst_vid=", dst_vid
             return None, None, None
-
-    # FIXME: Not used?
-    def process_rdv_withdraw(self, packet):
-        print "WARNING: process_rdv_withdraw called but implementation not verified yet"
-        src_vid = bin2str((struct.unpack("!I", packet[16:20]))[0], self.L)
-        payload = bin2str((struct.unpack("!I", packet[24:28]))[0], self.L)
-
-        print 'Node:', self.vid, 'has received process_rdv_withdraw from ', src_vid
-
-        gw = {}
-        print self.rdv_store
-        for level in self.rdv_store:
-            delete = []
-            for idx in range(0, len(self.rdv_store[level])):
-
-                entry = self.rdv_store[level][idx]
-
-                if (entry[0] == payload) or (entry[1] == payload):
-
-                    delete.append(idx)
-
-                    # Save the list of Removed Gateways and delete them from rdv Store
-                    if not level in gw:
-                        gw[level] = []
-
-                    gw[level].append(entry[0])  # saves the removed GWs
-
-            for index in delete:
-                del self.rdv_store[level][index]
-
-        if self.vid != src_vid:  # only need to update routing table if this came from someone else
-            self.remove_failed_gw(packet)  # update the Routing Table
-
-        else:
-            print "I am the rdv point. My routing table is already updated."
-
-        return gw
-
-    # TODO: Dead code -- may be incorrect
-    def get_gw_list(self, next_hop):
-        print 'FIXME: get_gw_list should not be called yet -- implementation may not be correct'
-        gw_list = []
-        # calculate logical distance
-        print "Finding the gateways..."
-        entries = self.find_entries_with_neighbor_as_next_hop(next_hop)
-        for level in entries:
-            if level != 1 or level != -1:
-                bucket = entries[level]
-                # return gateway from routing_table with distance = bucket
-                gw = bin2str(self.routing_table[level][bucket]['gateway'], self.L)
-                gw_list.append(gw)
-
-        return gw_list
-
-    # Returns a dictionary that is like a copy of the routing table except:
-    # - There is exactly 1 entry for each bucket
-    # - If the next hop in a routing table entry matches this neighbor_vid
-    #   then that entry is copied into this dictionary
-    # - Otherwise (e.g. no matching entry found for bucket/level) the corresponding entry is set to -1
-    # TODO: Dead code -- may be incorrect
-    def find_entries_with_neighbor_as_next_hop(self, neighbor_vid):
-        print 'FIXME: find_entries_with_neighbor_as_next_hop should not be called yet -- implementation may not be correct'
-        # Note: removed dead code from original implementation (may need to add back later when needed)
-        result = {}
-        for bucket in self.routing_table:
-            result[bucket] = -1
-            for entry in self.routing_table[bucket]:
-                next_hop = bin2str(self.routing_table[bucket][entry]['next_hop'], self.L)
-                if next_hop == neighbor_vid:
-                    result[bucket] = entry
-
-        return result
-
-
-
 
