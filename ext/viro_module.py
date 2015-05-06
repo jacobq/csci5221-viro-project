@@ -16,7 +16,7 @@ class ViroModule(object):
     def update_routing_table_based_on_neighbor(self, neighbor_vid, port):
         print "update_routing_table_based_on_neighbor: neighbor_vid =", neighbor_vid, "port =", port
         bucket = delta(neighbor_vid, self.vid)
-        # If we don't have any entries at this bucket -> create a new bucket
+        # If we don't have any entries at this level -> create a new bucket list
         if bucket not in self.routing_table:
             self.routing_table[bucket] = []
 
@@ -337,8 +337,10 @@ class ViroModule(object):
                 'next_hop': int(next_hop, 2),
                 'port': port
             }
-            self.routing_table[k].append(bucket_info)
-            self.recalculate_default_gw_for_bucket(k)
+
+            if not is_duplicate_bucket(self.routing_table[k], bucket_info):
+                self.routing_table[k].append(bucket_info)
+                self.recalculate_default_gw_for_bucket(k)
 
     def find_gateways_in_rdv_store(self, k, src_vid):
         gw_list = []
@@ -390,8 +392,9 @@ class ViroModule(object):
                 'port': port
             }
 
-            self.routing_table[k].append(bucket_info)
-            self.recalculate_default_gw_for_bucket(k)
+            if not is_duplicate_bucket(self.routing_table[k], bucket_info):
+                self.routing_table[k].append(bucket_info)
+                self.recalculate_default_gw_for_bucket(k)
 
     def get_next_hop_rdv(self, gw_str):
         next_hop = ''
