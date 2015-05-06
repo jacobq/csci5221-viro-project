@@ -214,7 +214,7 @@ class ViroModule(object):
         packet = create_RDV_QUERY(k, self.vid, dst)
 
         print 'Node:', self.vid, 'is querying to reach bucket:', k, 'to rdv:', dst
-        return (packet, dst)
+        return packet, dst
 
     def get_next_hop(self, dst_vid, is_query_or_publish=False):
         next_hop = None
@@ -325,7 +325,7 @@ class ViroModule(object):
                 self.routing_table[k] = []
 
             next_hop, port = self.get_next_hop_rdv(gw_str)
-            if next_hop == '':
+            if next_hop is None:
                 print 'No next_hop found for the gateway:', gw_str
                 print 'New routing information couldnt be added! '
                 return
@@ -342,6 +342,8 @@ class ViroModule(object):
                 self.routing_table[k].append(bucket_info)
                 self.recalculate_default_gw_for_bucket(k)
 
+    # k is an integer
+    # src_vid is a string of '0's and '1's
     def find_gateways_in_rdv_store(self, k, src_vid):
         gw_list = []
         if k not in self.rdv_store:
@@ -379,7 +381,7 @@ class ViroModule(object):
                 self.routing_table[k] = []
 
             next_hop, port = self.get_next_hop_rdv(gw_str)
-            if next_hop == '':
+            if next_hop is None:
                 print 'ERROR: no next_hop found for the gateway:', gw_str
                 print "New routing information couldn't be added!"
                 return
@@ -397,8 +399,8 @@ class ViroModule(object):
                 self.recalculate_default_gw_for_bucket(k)
 
     def get_next_hop_rdv(self, gw_str):
-        next_hop = ''
-        port = ''
+        next_hop = None
+        port = None
 
         distance = delta(self.vid, gw_str)
         if distance in self.routing_table:
@@ -407,7 +409,7 @@ class ViroModule(object):
                     next_hop = bin2str(entry['next_hop'], self.L)
                     port = str(entry['port'])
 
-        return (next_hop, port)
+        return next_hop, port
 
     # Selects random entry from appropriate level bucket/entry in the routing table
     # Returns gateway and next hop as strings of '0's and '1's
