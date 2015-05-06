@@ -110,7 +110,7 @@ class ViroModule(object):
     def print_routing_table(self):
         print '\n----> Routing Table at :', self.vid, '|', self.dpid, ' <----'
         for distance in range(1, self.L + 1):
-            if distance in self.routing_table:
+            if distance in self.routing_table and len(self.routing_table[distance]) > 0:
                 for entry in self.routing_table[distance]:
                     print 'Bucket:', distance, \
                           'Port:', entry['port'], \
