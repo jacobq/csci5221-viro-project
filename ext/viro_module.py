@@ -342,6 +342,10 @@ class ViroModule(object):
         for gw in gw_list:
             gw_str = bin2str(gw, self.L)
 
+            if gw_str == self.vid:
+                print "(Ignoring gateway in RDV_REPLY because it is us)"
+                continue
+
             if not k in self.routing_table:
                 self.routing_table[k] = []
 
@@ -349,7 +353,7 @@ class ViroModule(object):
             if next_hop is None:
                 print 'ERROR: no next_hop found for the gateway:', gw_str
                 print "New routing information couldn't be added!"
-                return
+                continue
 
             next_hop_int = int(next_hop, 2)
             bucket_info = {
