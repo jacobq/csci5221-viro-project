@@ -27,13 +27,16 @@ class ViroModule(object):
             'port': port
         }
 
-        if not is_duplicate_bucket(self.routing_table[bucket], bucket_info):
-            self.routing_table[bucket].append(bucket_info)
-            self.recalculate_default_gw_for_bucket(bucket)
+        self.add_bucket_if_not_duplicate(bucket_info, bucket)
 
         print "Updating the Neighbors list..."
         self.update_neighbors(neighbor_vid, bucket)
         self.print_routing_table()
+
+    def add_bucket_if_not_duplicate(self, bucket_info, k):
+        if not is_duplicate_bucket(self.routing_table[k], bucket_info):
+            self.routing_table[k].append(bucket_info)
+            self.recalculate_default_gw_for_bucket(k)
 
     # Presumably a gateway has just been added to or removed from the list for this bucket,
     # so we need to do the following:
@@ -357,9 +360,7 @@ class ViroModule(object):
                 'port': port
             }
 
-            if not is_duplicate_bucket(self.routing_table[k], bucket_info):
-                self.routing_table[k].append(bucket_info)
-                self.recalculate_default_gw_for_bucket(k)
+            self.add_bucket_if_not_duplicate(bucket_info, k)
 
     def get_next_hop_rdv(self, gw_str):
         next_hop = None
