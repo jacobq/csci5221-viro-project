@@ -19,7 +19,7 @@ class ViroSwitch(object):
 
         # Statistics for performance / verification report
         self.switch_stats = {}
-        for op_name in OP_NAMES.keys():
+        for op_code, op_name in OP_NAMES.items():
             self.switch_stats[op_name] = {
                 'sent': 0,
                 'processed': 0,
@@ -29,10 +29,9 @@ class ViroSwitch(object):
         # When receiving VIRO data packets we can peek at the TTL
         # and determine the number of hops used since we know the
         # initial TTL
-        self.switch_stats['VIRO_DATA_OP']['total_ttl'] = 0
+        self.switch_stats['VIRO_DATA_OP']['total_hops'] = 0
         # Also track how many we've created from here
         self.switch_stats['VIRO_DATA_OP']['originated'] = 0
-
 
         # We want to hear PacketIn messages, so we listen
         connection.addListeners(self)
@@ -140,13 +139,8 @@ class ViroSwitch(object):
                 contents = decode_viro_data_packet_contents(packet, L)
                 print "Received a VIRO data packet:", contents
                 stats = self.switch_stats['VIRO_DATA_OP']
-                if self.switch_stats['VIRO_DATA_OP'] is None:
-                    self.switch_stats['VIRO_DATA_OP'] = {
-                        'consumed': 0,
-                        'sent': 0
-                    }
-                    self.switch_stats['VIRO_DATA_OP'] = 0
-                self.switch_stats['VIRO_DATA_OP'] += 1
+                self.switch_stats['VIRO_DATA_OP']['consumed'] += 1
+                self.switch_stats['VIRO_DATA_OP']['total_hops'] += MAX_TTL - contents['ttl']
 
 
     def create_openflow_message(self, openflow_port, mac, packet, event_port=None):
@@ -309,8 +303,9 @@ class ViroSwitch(object):
             for op_name, stats in self.switch_stats.items():
                 print op_name
                 for stat_name, stat_value in stats.items():
-                    if stat_name == "total_ttl":
-                        print "   Average hops:", stat_value/stats['received'] - MAX_TTL
+                    if stat_name == "total_hops":
+                        if stats['consumed'] > 0:
+                            print "   Average hops (for consumed):", stat_value/stats['consumed']
                     else:
                         print "   ", stat_name, ":", stat_value
             print '\n'
