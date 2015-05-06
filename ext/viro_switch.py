@@ -303,8 +303,9 @@ class ViroSwitch(object):
                 print op_name
                 for stat_name, stat_value in stats.items():
                     if stat_name == "total_hops":
-                        if stats['consumed'] > 0:
-                            print "   Average hops (for consumed):", stat_value/stats['consumed']
+                        consumed = stats['consumed']
+                        if consumed > 0:
+                            print "   Average hop count for incoming packets:", stat_value/consumed
                     else:
                         print "   ", stat_name, ":", stat_value
             print '\n'
