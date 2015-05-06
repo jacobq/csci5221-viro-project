@@ -45,6 +45,18 @@ class ViroSwitch(object):
             print "Error while processing packet"
             print traceback.format_exc()
 
+    # Print messages in log when port status changed
+    # (i.e. when administratively up/down)
+    # See https://openflow.stanford.edu/display/ONL/POX+Wiki#POXWiki-PortStatus
+    def _handle_PortStatus (self, event):
+        if event.added:
+            action = "added"
+        elif event.deleted:
+            action = "removed"
+        else:
+            action = "modified"
+        print "Port %s on (switch %s) has been %s." % (event.port, event.dpid, action)
+
     def process_viro_packet(self, packet, match=None, event=None):
         L = len(self.vid)
         # print_packet(packet, L, True)
