@@ -152,13 +152,16 @@ class ViroModule(object):
             return
 
         print "Now removing entries for failed next hops in routing table"
-        for k, entries in self.routing_table.items():
-            for entry_key, entry in enumerate(entries):
-                next_hop = bin2str(entry['next_hop'], self.L)
-                if next_hop not in self.neighbors or k not in self.neighbors[next_hop]:
+        for next_hop in failed_next_hops:
+            vid = next_hop['vid']
+            k = next_hop['distance']
+            for i, entry in enumerate(self.routing_table[k]):
+                gw_vid = bin2str(entry['gateway'], L)
+                if gw_vid == vid:
                     print "Removing entry from routing table:", entry
-                    del entries[entry_key]
-                    self.recalculate_default_gw_for_bucket(k)
+                    del self.routing_table[k][i]
+
+        self.recalculate_default_gw_for_bucket(k)
 
     def remove_failed_gw(self, packet, gw=None):
         if gw is None:
