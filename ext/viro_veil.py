@@ -250,6 +250,15 @@ def delta(vid1, vid2):
     # print "Logical distance between ", vid1, "and", vid2, "is", distance
     return distance
 
+def ones_complement_str(s):
+    xs = ''
+    for c in s:
+        if c == '1':
+            xs += '0'
+        else:
+            xs += '1'
+    return xs
+
 ######################################
 # Debug functions
 def print_packet(packet, L, verbose=False):

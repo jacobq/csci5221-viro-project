@@ -140,6 +140,17 @@ class ViroSwitch(object):
                 self.switch_stats['VIRO_DATA_OP']['consumed'] += 1
                 self.switch_stats['VIRO_DATA_OP']['total_hops'] += MAX_TTL - contents['ttl']
 
+                # Send reply back
+                if self.vid == '0000':
+                    print "(not replying to data packet since we are node 0000)"
+                else:
+                    print "Sending VIRO data reply"
+                    src_vid = self.vid
+                    dst_vid = contents['src_vid']
+                    payload = ones_complement_str(contents['payload'])
+                    reply_packet = create_VIRO_DATA(src_vid, dst_vid, src_vid, MAX_TTL, payload)
+                    self.process_viro_packet(reply_packet)
+                    self.switch_stats['VIRO_DATA_OP']['originated'] += 1
 
     def create_openflow_message(self, openflow_port, mac, packet, event_port=None):
         # Track statistics on sent messages
@@ -199,9 +210,9 @@ class ViroSwitch(object):
     # a set of VIDs that will be used for sending sample data packets for routing demonstration
     def generate_demo_packet_sequence(self):
         vid_sequence = []
-        for vid in range(0, 2**L):
-            vid_sequence.append(bin2str(vid, L))
-        # print "Created demo/sample sequence of VIDs to send VIRO data packets to:", vid_sequence
+        # Just generate sample data from 0000 to 1111
+        if self.vid == '0000':
+            vid_sequence.append('1111')
         return vid_sequence
 
     # This function gets called periodically by a timer
@@ -211,6 +222,9 @@ class ViroSwitch(object):
     # it in the switches log messages.
     def send_sample_viro_data(self):
         try:
+            if len(self.demo_packet_sequence) < 1:
+                # print "(not configured to send any sample packets)"
+                return
             src_vid = self.vid
             dst_vid = self.demo_packet_sequence[self.demo_sequence_number % len(self.demo_packet_sequence)]
             # Start with our own VID as the forwarding directive and let the routing function
@@ -218,6 +232,7 @@ class ViroSwitch(object):
             fwd_vid = src_vid
             self.demo_sequence_number += 1
             payload = bin(self.demo_sequence_number % 2**32).replace("0b", "")
+            print "Sending sample VIRO data packet to", dst_vid, "with payload", payload
             packet = create_VIRO_DATA(src_vid, dst_vid, fwd_vid, MAX_TTL, payload)
             self.process_viro_packet(packet)
             self.switch_stats['VIRO_DATA_OP']['originated'] += 1
